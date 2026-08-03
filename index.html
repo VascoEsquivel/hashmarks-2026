@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HASH MARKS — 2026 Best Ball Model</title>
+<meta name="description" content="A tunable projection model for Underdog Best Ball Mania VII, built on 2026 line play, scheme fit, and Week 15–17 playoff matchups." />
+<style>
+/* ============================================================
+   TOKENS
+   Palette: night turf ground, field-chalk type, sodium-lamp amber accent.
+   Semantic edge colors (teal / red) are deliberately NOT the accent.
+   ============================================================ */
+:root{
+  --ground:#10130E;
+  --panel:#191D16;
+  --panel-2:#22271F;
+  --line:#2E3529;
+  --line-soft:#232A1F;
+  --ink:#EDEFE6;
+  --ink-2:#A8B09C;
+  --ink-3:#6E7666;
+  --accent:#E8B23A;
+  --accent-dim:#8A6A22;
+  --edge:#4FD1A5;
+  --edge-dim:#1F5F4B;
+  --warn:#E2564C;
+  --warn-dim:#6B2822;
+  --neutral:#7C8CA0;
+  --shadow:0 1px 0 rgba(255,255,255,.03), 0 12px 32px -18px rgba(0,0,0,.9);
+  --r:3px;
+
+  --font-display:"Bahnschrift","DIN Alternate","DIN Condensed","Oswald","Franklin Gothic Medium","Segoe UI",system-ui,sans-serif;
+  --font-body:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+  --font-mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Liberation Mono",monospace;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  /* measured at runtime — the header wraps to two rows on narrow viewports */
+  --hdr:66px;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --ground:#F2F2EA; --panel:#FFFFFF; --panel-2:#F7F7F0;
+    --line:#DCDDD0; --line-soft:#E8E9DE;
+    --ink:#15180F; --ink-2:#5A6152; --ink-3:#8A9180;
+    --accent:#A87608; --accent-dim:#E3C583;
+    --edge:#0E7A5A; --edge-dim:#A9E0CD;
+    --warn:#B7362C; --warn-dim:#EFC0BB;
+    --neutral:#546274;
+    --shadow:0 1px 2px rgba(20,25,15,.05), 0 10px 26px -20px rgba(20,25,15,.5);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#F2F2EA; --panel:#FFFFFF; --panel-2:#F7F7F0;
+  --line:#DCDDD0; --line-soft:#E8E9DE;
+  --ink:#15180F; --ink-2:#5A6152; --ink-3:#8A9180;
+  --accent:#A87608; --accent-dim:#E3C583;
+  --edge:#0E7A5A; --edge-dim:#A9E0CD;
+  --warn:#B7362C; --warn-dim:#EFC0BB;
+  --neutral:#546274;
+  --shadow:0 1px 2px rgba(20,25,15,.05), 0 10px 26px -20px rgba(20,25,15,.5);
+}
+:root[data-theme="dark"]{
+  --ground:#10130E; --panel:#191D16; --panel-2:#22271F;
+  --line:#2E3529; --line-soft:#232A1F;
+  --ink:#EDEFE6; --ink-2:#A8B09C; --ink-3:#6E7666;
+  --accent:#E8B23A; --accent-dim:#8A6A22;
+  --edge:#4FD1A5; --edge-dim:#1F5F4B;
+  --warn:#E2564C; --warn-dim:#6B2822;
+  --neutral:#7C8CA0;
+  --shadow:0 1px 0 rgba(255,255,255,.03), 0 12px 32px -18px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:var(--font-body); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display); font-variation-settings:"wdth" 87.5; margin:0; font-weight:700; letter-spacing:.01em; text-wrap:balance}
+button,input,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+
+.mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+.num{font-family:var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+
+/* ---------- chrome ---------- */
+header.top{
+  position:sticky; top:0; z-index:60;
+  display:flex; align-items:center; gap:var(--s4); flex-wrap:wrap;
+  padding:var(--s3) var(--s5);
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.lockup{display:flex; align-items:baseline; gap:var(--s3); margin-right:auto}
+.lockup h1{
+  font-size:26px; line-height:1; text-transform:uppercase;
+  font-variation-settings:"wdth" 75,"wght" 700; letter-spacing:.06em;
+}
+.lockup h1 span{color:var(--accent)}
+.lockup .sub{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+.chips{display:flex; gap:var(--s2); flex-wrap:wrap; align-items:center}
+.chip{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+  padding:4px 8px; border:1px solid var(--line); border-radius:var(--r);
+  color:var(--ink-2); background:var(--panel); white-space:nowrap;
+}
+.chip b{color:var(--ink); font-weight:600}
+.iconbtn{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+  padding:5px 10px; cursor:pointer; color:var(--ink-2); font-size:12px;
+}
+.iconbtn:hover{border-color:var(--accent); color:var(--ink)}
+
+/* hash-mark rule: the divider motif, borrowed from the field itself */
+.hash{height:9px; background-image:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 13px); opacity:.75}
+
+/* ---------- shell ---------- */
+.shell{display:grid; grid-template-columns:296px minmax(0,1fr); gap:0; align-items:start}
+aside.rail{
+  position:sticky; top:var(--hdr); align-self:start;
+  height:calc(100vh - var(--hdr)); overflow-y:auto;
+  border-right:1px solid var(--line); background:var(--panel);
+  padding:var(--s4) var(--s4) var(--s7);
+}
+main.board{min-width:0; padding:var(--s4) var(--s5) var(--s7)}
+
+/* ---------- rail controls ---------- */
+.group{margin-bottom:var(--s5)}
+.group > h3{
+  font-size:11px; text-transform:uppercase; letter-spacing:.16em; color:var(--ink-3);
+  font-family:var(--font-mono); font-weight:400; margin-bottom:var(--s3);
+  display:flex; align-items:center; gap:var(--s2);
+}
+.group > h3::after{content:""; flex:1; height:1px; background:var(--line)}
+.field{display:flex; flex-direction:column; gap:5px; margin-bottom:var(--s3)}
+.field label{font-size:11.5px; color:var(--ink-2); display:flex; justify-content:space-between; align-items:baseline; gap:var(--s2)}
+.field label .v{font-family:var(--font-mono); font-size:11px; color:var(--accent); font-variant-numeric:tabular-nums}
+.field select, .field input[type=number]{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:var(--r);
+  padding:6px 8px; font-size:12.5px; width:100%;
+}
+input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px; background:transparent; cursor:pointer; margin:0 }
+input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--line); border-radius:2px}
+input[type=range]::-moz-range-track{height:3px; background:var(--line); border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+  background:var(--accent); margin-top:-5px; border:2px solid var(--panel);
+}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
+.seg{display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.seg button{
+  flex:1; background:var(--panel-2); border:0; padding:6px 4px; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; color:var(--ink-3); letter-spacing:.04em;
+}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:#15180F; font-weight:600}
+.rowfields{display:grid; grid-template-columns:1fr 1fr; gap:var(--s2)}
+.ghost{
+  width:100%; background:transparent; border:1px dashed var(--line); border-radius:var(--r);
+  padding:7px; cursor:pointer; color:var(--ink-3); font-size:11.5px; font-family:var(--font-mono);
+  letter-spacing:.08em; text-transform:uppercase;
+}
+.ghost:hover{border-color:var(--accent); color:var(--accent)}
+
+/* ---------- tabs ---------- */
+nav.tabs{display:flex; gap:2px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin-bottom:var(--s4)}
+nav.tabs button{
+  background:transparent; border:0; border-bottom:2px solid transparent;
+  padding:9px 14px; cursor:pointer; color:var(--ink-3);
+  font-family:var(--font-display); font-variation-settings:"wdth" 87.5;
+  font-size:14.5px; text-transform:uppercase; letter-spacing:.09em;
+}
+nav.tabs button:hover{color:var(--ink)}
+nav.tabs button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex; gap:var(--s2); flex-wrap:wrap; align-items:center; margin-bottom:var(--s3)}
+.toolbar input[type=search]{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+  padding:7px 10px; font-size:13px; min-width:190px; flex:1; max-width:300px;
+}
+.pill{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+  padding:6px 11px; cursor:pointer; font-family:var(--font-mono); font-size:11px;
+  letter-spacing:.08em; color:var(--ink-3); text-transform:uppercase;
+}
+.pill[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#15180F; font-weight:600}
+.spacer{flex:1}
+
+/* ---------- board ---------- */
+/* No overflow container at wide widths, so the sticky header can anchor to the
+   viewport. Below the breakpoint the table needs horizontal scroll, which makes
+   the wrapper the containing block — the header then anchors to the wrapper. */
+.tablewrap{border:1px solid var(--line); border-radius:var(--r); background:var(--panel)}
+@media (max-width:1279px){
+  .tablewrap{overflow-x:auto}
+  thead th{top:0 !important}
+}
+table{border-collapse:collapse; width:100%; min-width:940px}
+thead th{
+  position:sticky; top:var(--hdr); z-index:20; background:var(--panel-2);
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:400; text-align:right; padding:9px 10px;
+  border-bottom:1px solid var(--line); white-space:nowrap; cursor:pointer; user-select:none;
+}
+thead th:first-child, thead th.l{text-align:left}
+thead th:hover{color:var(--ink)}
+thead th .dir{color:var(--accent)}
+tbody tr.row{border-bottom:1px solid var(--line-soft); cursor:pointer}
+tbody tr.row:hover{background:var(--panel-2)}
+tbody td{padding:8px 10px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+tbody td.l{text-align:left}
+.stripe{width:3px; padding:0 !important}
+td.rk{font-family:var(--font-mono); color:var(--ink-3); font-size:12px; width:44px}
+.pname{display:flex; align-items:center; gap:var(--s2)}
+.pname b{font-weight:600; font-size:13.5px}
+.pos{
+  font-family:var(--font-mono); font-size:9.5px; letter-spacing:.06em; padding:2px 5px;
+  border-radius:2px; border:1px solid var(--line); color:var(--ink-2); background:var(--panel-2);
+}
+.pos.RB{color:#8FD46B; border-color:#3E5A2E}
+.pos.WR{color:#6FB8E8; border-color:#2B4A63}
+.pos.QB{color:#E8B23A; border-color:#6B5220}
+.pos.TE{color:#D08CE8; border-color:#54325F}
+:root[data-theme="light"] .pos.RB{color:#3D6B1F;border-color:#B9D6A3}
+:root[data-theme="light"] .pos.WR{color:#1B5A85;border-color:#A8CDE4}
+:root[data-theme="light"] .pos.QB{color:#8A5F06;border-color:#E0C88C}
+:root[data-theme="light"] .pos.TE{color:#6C2E80;border-color:#DCB6E6}
+.team{font-family:var(--font-mono); font-size:11px; color:var(--ink-3)}
+.flag{
+  font-family:var(--font-mono); font-size:9px; letter-spacing:.05em; padding:1px 4px;
+  border-radius:2px; text-transform:uppercase;
+}
+.flag.out{background:var(--warn-dim); color:var(--warn)}
+.flag.q{background:var(--accent-dim); color:var(--accent)}
+.flag.up{background:var(--edge-dim); color:var(--edge)}
+:root[data-theme="light"] .flag.out{color:#8C221A}
+:root[data-theme="light"] .flag.q{color:#6E4B04}
+:root[data-theme="light"] .flag.up{color:#0A5C43}
+.val{font-family:var(--font-mono); font-weight:600; font-size:12.5px}
+.val.pos{color:var(--edge)} .val.neg{color:var(--warn)} .val.flat{color:var(--ink-3)}
+.bar{position:relative; height:5px; background:var(--line-soft); border-radius:3px; min-width:56px; overflow:hidden}
+.bar > i{position:absolute; inset:0 auto 0 0; background:var(--accent); border-radius:3px; display:block}
+.bar.teal > i{background:var(--edge)}
+.tierband td{
+  background:var(--ground); font-family:var(--font-mono); font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3); padding:6px 10px; text-align:left;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+
+/* ---------- drawer ----------
+   tbody td is right-aligned for the numeric board; the drawer holds prose and
+   cards, so it has to opt back out or every label flies off the right edge. */
+tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space:normal}
+.dwrap{padding:var(--s4) var(--s5); border-bottom:1px solid var(--line); display:grid; gap:var(--s4)}
+.dhead{display:flex; align-items:flex-start; gap:var(--s4); flex-wrap:wrap}
+.dhead h3{font-size:20px; text-transform:uppercase; letter-spacing:.03em}
+.dnote{color:var(--ink-2); font-size:12.5px; max-width:68ch; line-height:1.6}
+.dgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:var(--s3)}
+.metric{border:1px solid var(--line); border-radius:var(--r); padding:9px 11px; background:var(--panel)}
+.metric .k{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.metric .n{font-family:var(--font-mono); font-size:17px; font-weight:600; margin:2px 0 5px; letter-spacing:-.02em}
+.metric .d{font-size:11px; color:var(--ink-3); line-height:1.4}
+.compbars{display:grid; gap:7px}
+.comprow{display:grid; grid-template-columns:170px minmax(80px,1fr) 132px; gap:var(--s3); align-items:center; font-size:11.5px}
+.comprow > span:first-child{color:var(--ink-2)}
+.comprow .num{text-align:right; font-size:11px; color:var(--ink-3)}
+.compbars, .dgrid, .wk{max-width:900px}
+.wk{display:flex; gap:var(--s2); flex-wrap:wrap}
+.wkcard{border:1px solid var(--line); border-radius:var(--r); padding:7px 10px; background:var(--panel); min-width:96px}
+.wkcard .k{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); letter-spacing:.1em}
+.wkcard .o{font-family:var(--font-display); font-variation-settings:"wdth" 87.5; font-size:16px; letter-spacing:.02em}
+.wkcard .g{font-family:var(--font-mono); font-size:10.5px}
+
+/* ---------- cards / lists ---------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:var(--s3)}
+.card{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:var(--s4); box-shadow:var(--shadow)}
+.card h4{font-size:16px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px}
+.card .meta{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.06em; text-transform:uppercase; margin-bottom:var(--s3)}
+.card p{margin:0 0 var(--s2); font-size:12.5px; color:var(--ink-2); line-height:1.6}
+.kv{display:flex; justify-content:space-between; gap:var(--s2); font-size:12px; padding:4px 0; border-top:1px solid var(--line-soft)}
+.kv span:last-child{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+.newsitem{display:grid; grid-template-columns:78px 1fr; gap:var(--s3); padding:var(--s3) 0; border-bottom:1px solid var(--line-soft)}
+.newsitem .date{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.06em; padding-top:2px}
+.newsitem h5{margin:0 0 3px; font-size:13.5px; font-weight:600}
+.newsitem p{margin:0 0 5px; font-size:12.5px; color:var(--ink-2); line-height:1.55}
+.impact{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:2px; border:1px solid var(--line); color:var(--ink-3)}
+.impact.up{color:var(--edge); border-color:var(--edge-dim)}
+.impact.down{color:var(--warn); border-color:var(--warn-dim)}
+.note{font-size:11.5px; color:var(--ink-3); line-height:1.6; max-width:78ch}
+.note code{font-family:var(--font-mono); font-size:11px; background:var(--panel-2); padding:1px 4px; border-radius:2px}
+
+.legend{display:flex; gap:var(--s4); flex-wrap:wrap; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.05em; margin-top:var(--s3)}
+.legend i{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+
+/* On phones the rail would bury the board under twenty controls, so it
+   collapses behind a toggle and the page header stops being sticky. */
+.railtoggle{display:none}
+@media (max-width: 900px){
+  .shell{grid-template-columns:1fr}
+  aside.rail{position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); padding:var(--s3)}
+  aside.rail > .group{display:none}
+  aside.rail.open > .group{display:block}
+  .railtoggle{
+    display:flex; justify-content:space-between; align-items:center; gap:var(--s2); width:100%;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:var(--r);
+    padding:10px 12px; cursor:pointer; color:var(--ink-2);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  }
+  aside.rail.open .railtoggle{margin-bottom:var(--s4); border-color:var(--accent); color:var(--accent)}
+  .railtoggle .caret{transition:transform .18s ease}
+  aside.rail.open .railtoggle .caret{transform:rotate(180deg)}
+  main.board{padding:var(--s4)}
+  header.top{position:static; padding:var(--s3)}
+  nav.tabs button{padding:8px 10px; font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="lockup">
+    <h1>Hash<span>Marks</span></h1>
+    <div class="sub">2026 Best Ball Model &middot; BBM VII</div>
+  </div>
+  <div class="chips" id="statechips"></div>
+  <button class="iconbtn" id="themebtn" title="Toggle theme">◐</button>
+</header>
+<div class="hash"></div>
+
+<div class="shell">
+  <aside class="rail" id="rail">
+    <button class="railtoggle" id="railtoggle" aria-expanded="false" aria-controls="rail">
+      <span>League settings &amp; model weights</span><span class="caret">▾</span>
+    </button>
+    <div class="group">
+      <h3>League Settings</h3>
+      <div class="field">
+        <label for="ppr">Points per reception <span class="v" id="ppr_v">0.5</span></label>
+        <input type="range" id="ppr" min="0" max="1" step="0.25" value="0.5" />
+      </div>
+      <div class="field">
+        <label for="tep">TE premium (bonus/rec) <span class="v" id="tep_v">0.0</span></label>
+        <input type="range" id="tep" min="0" max="1" step="0.25" value="0" />
+      </div>
+      <div class="rowfields">
+        <div class="field"><label for="teams">Teams</label><input type="number" id="teams" min="4" max="20" value="12" /></div>
+        <div class="field"><label for="roster">Roster</label><input type="number" id="roster" min="10" max="24" value="18" /></div>
+      </div>
+      <div class="rowfields">
+        <div class="field"><label for="sQB">QB</label><input type="number" id="sQB" min="1" max="2" value="1" /></div>
+        <div class="field"><label for="sRB">RB</label><input type="number" id="sRB" min="1" max="4" value="2" /></div>
+      </div>
+      <div class="rowfields">
+        <div class="field"><label for="sWR">WR</label><input type="number" id="sWR" min="1" max="5" value="3" /></div>
+        <div class="field"><label for="sTE">TE</label><input type="number" id="sTE" min="0" max="3" value="1" /></div>
+      </div>
+      <div class="field"><label for="sFLEX">Flex spots</label><input type="number" id="sFLEX" min="0" max="3" value="1" /></div>
+      <div class="field">
+        <label>Playoff weeks scored</label>
+        <div class="seg" id="pwseg">
+          <button data-pw="15" aria-pressed="true">15–17</button>
+          <button data-pw="14" aria-pressed="false">14–17</button>
+          <button data-pw="16" aria-pressed="false">16–17</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Model Weights</h3>
+      <div class="field">
+        <label for="wPlayoff">Wk 15–17 leverage <span class="v" id="wPlayoff_v">0.55</span></label>
+        <input type="range" id="wPlayoff" min="0" max="1" step="0.05" value="0.55" />
+      </div>
+      <div class="field">
+        <label for="wSpike">Spike-week variance <span class="v" id="wSpike_v">0.35</span></label>
+        <input type="range" id="wSpike" min="0" max="1" step="0.05" value="0.35" />
+      </div>
+      <div class="field">
+        <label for="wOL">Line play / run block <span class="v" id="wOL_v">1.00</span></label>
+        <input type="range" id="wOL" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <div class="field">
+        <label for="wScheme">Scheme &amp; playcaller fit <span class="v" id="wScheme_v">1.00</span></label>
+        <input type="range" id="wScheme" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <div class="field">
+        <label for="wVol">Volume / opportunity <span class="v" id="wVol_v">1.00</span></label>
+        <input type="range" id="wVol" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <div class="field">
+        <label for="wTD">Touchdown equity <span class="v" id="wTD_v">1.00</span></label>
+        <input type="range" id="wTD" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <div class="field">
+        <label for="wPass">Pass-game role (RB) <span class="v" id="wPass_v">1.00</span></label>
+        <input type="range" id="wPass" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <div class="field">
+        <label for="wInj">Injury / camp discount <span class="v" id="wInj_v">1.00</span></label>
+        <input type="range" id="wInj" min="0" max="2" step="0.05" value="1" />
+      </div>
+      <button class="ghost" id="resetbtn">Reset to defaults</button>
+    </div>
+
+    <div class="group">
+      <h3>Read Me</h3>
+      <p class="note">
+        Team inputs — offensive line ranks, yards before contact, pressure rate, outside/inside-zone rates,
+        playcaller, and Week&nbsp;15–17 opponents with defensive SAFPA — are sourced. Player efficiency splits
+        (zone YPC, slot rate) are sourced where published; the remaining role inputs are scouted estimates and
+        are marked <code>est</code> in each player's drawer. Move a slider and every rank recomputes live.
+      </p>
+    </div>
+  </aside>
+
+  <main class="board">
+    <nav class="tabs" id="tabs">
+      <button data-tab="board" aria-selected="true">Big Board</button>
+      <button data-tab="playoff" aria-selected="false">Playoff Lab</button>
+      <button data-tab="stacks" aria-selected="false">Stacks</button>
+      <button data-tab="cuffs" aria-selected="false">Handcuffs</button>
+      <button data-tab="teams" aria-selected="false">Team Sheet</button>
+      <button data-tab="news" aria-selected="false">Camp Wire</button>
+      <button data-tab="method" aria-selected="false">Method</button>
+    </nav>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ================================================================
+   1. TEAM LAYER  — sourced 2026 inputs
+   olAvg : 4-source composite OL rank (Clay / Sharp / 4for4 / FTN)
+   clay  : Mike Clay OL rank            ybco : yards before contact per rush attempt
+   qbp   : QB pressure rate allowed %   oz/iz: outside-/inside-zone play rate %
+   pc    : primary playcaller           px   : true = zone rates proxied from coach's prior stop
+   def   : team DEFENSE fantasy-points-allowed rating (SAFPA; + = generous)
+   p     : [wk15, wk16, wk17] opponents (@ = road)
+   ppg   : projected team points/game   pa   : projected pass attempts/game
+   ra    : projected rush attempts/game qopt : designed QB run / option game
+   dome  : home venue is indoors
+   ================================================================ */
+const T = {
+ARI:{olAvg:19.3,clay:15,ybco:1.66,qbp:38.7,oz:20.4,iz:21.7,pc:"M. LaFleur",px:1,def:5.0,p:["NYJ","@NO","LV"],ppg:22.5,pa:34,ra:26,qopt:0,dome:1},
+ATL:{olAvg:13.3,clay:12,ybco:1.02,qbp:35.4,oz:18.5,iz:18.1,pc:"T. Rees",px:0,def:-1.0,p:["@WAS","TB","NO"],ppg:22.5,pa:34,ra:27,qopt:0,dome:1},
+BAL:{olAvg:23.8,clay:21,ybco:1.65,qbp:33.7,oz:26.5,iz:22.2,pc:"D. Doyle",px:1,def:4.3,p:["@PIT","CLE","@CIN"],ppg:25.5,pa:31,ra:31,qopt:1,dome:0},
+BUF:{olAvg:7.3,clay:4,ybco:1.77,qbp:28.4,oz:19.2,iz:26.5,pc:"J. Brady",px:0,def:-7.4,p:["CHI","@DEN","@MIA"],ppg:27.5,pa:33,ra:29,qopt:1,dome:0},
+CAR:{olAvg:8.0,clay:9,ybco:1.37,qbp:37.5,oz:20.0,iz:28.6,pc:"B. Idzik",px:1,def:-6.7,p:["CIN","@PIT","SEA"],ppg:20.5,pa:33,ra:27,qopt:0,dome:0},
+CHI:{olAvg:4.5,clay:3,ybco:1.80,qbp:31.3,oz:26.5,iz:22.2,pc:"B. Johnson",px:0,def:7.7,p:["@BUF","GB","DET"],ppg:24.5,pa:34,ra:28,qopt:1,dome:0},
+CIN:{olAvg:28.5,clay:31,ybco:1.05,qbp:33.2,oz:13.1,iz:27.8,pc:"Z. Taylor",px:0,def:13.0,p:["@CAR","@IND","BAL"],ppg:25.0,pa:38,ra:23,qopt:0,dome:0},
+CLE:{olAvg:30.5,clay:28,ybco:0.56,qbp:46.5,oz:32.2,iz:17.6,pc:"T. Monken",px:0,def:-7.6,p:["@NYG","@BAL","IND"],ppg:18.5,pa:33,ra:26,qopt:0,dome:0},
+DAL:{olAvg:15.0,clay:13,ybco:1.32,qbp:32.0,oz:18.1,iz:23.2,pc:"B. Schottenheimer",px:0,def:22.5,p:["@LAR","@JAX","NYG"],ppg:24.5,pa:36,ra:25,qopt:0,dome:1},
+DEN:{olAvg:1.0,clay:1,ybco:1.66,qbp:27.7,oz:21.5,iz:13.8,pc:"D. Webb",px:1,def:-8.1,p:["@LV","BUF","@NE"],ppg:23.0,pa:33,ra:28,qopt:0,dome:0},
+DET:{olAvg:16.3,clay:20,ybco:1.53,qbp:34.3,oz:14.5,iz:19.9,pc:"D. Petzing",px:0,def:3.9,p:["@MIN","NYG","@CHI"],ppg:27.0,pa:33,ra:29,qopt:0,dome:1},
+GB :{olAvg:28.0,clay:27,ybco:1.30,qbp:35.3,oz:25.6,iz:24.8,pc:"M. LaFleur",px:0,def:-3.0,p:["MIA","@CHI","HOU"],ppg:23.5,pa:32,ra:28,qopt:0,dome:0},
+HOU:{olAvg:28.8,clay:32,ybco:1.13,qbp:31.9,oz:18.7,iz:24.6,pc:"N. Caley",px:0,def:-14.1,p:["JAX","@PHI","@GB"],ppg:22.0,pa:35,ra:25,qopt:0,dome:1},
+IND:{olAvg:12.8,clay:22,ybco:1.22,qbp:33.9,oz:17.9,iz:26.7,pc:"S. Steichen",px:0,def:7.1,p:["@TEN","CIN","@CLE"],ppg:22.5,pa:31,ra:31,qopt:0,dome:1},
+JAX:{olAvg:21.0,clay:25,ybco:1.13,qbp:33.3,oz:19.8,iz:23.1,pc:"L. Coen",px:0,def:-1.5,p:["@HOU","DAL","WAS"],ppg:22.0,pa:34,ra:27,qopt:1,dome:0},
+KC :{olAvg:19.3,clay:26,ybco:1.51,qbp:31.4,oz:20.7,iz:24.4,pc:"A. Reid",px:0,def:-10.2,p:["NE","SF","@LAC"],ppg:24.0,pa:36,ra:25,qopt:1,dome:0},
+LV :{olAvg:21.5,clay:18,ybco:0.69,qbp:36.0,oz:29.2,iz:19.9,pc:"K. Kubiak",px:0,def:-0.2,p:["DEN","TEN","@ARI"],ppg:20.5,pa:34,ra:26,qopt:0,dome:1},
+LAC:{olAvg:12.0,clay:8,ybco:1.54,qbp:42.5,oz:27.8,iz:21.1,pc:"M. McDaniel",px:0,def:-11.3,p:["SF","@MIA","KC"],ppg:23.5,pa:34,ra:27,qopt:1,dome:1},
+LAR:{olAvg:3.8,clay:5,ybco:1.24,qbp:27.4,oz:20.4,iz:21.7,pc:"S. McVay",px:0,def:-1.9,p:["DAL","@SEA","@TB"],ppg:25.5,pa:35,ra:26,qopt:0,dome:1},
+MIA:{olAvg:29.5,clay:30,ybco:0.99,qbp:30.6,oz:34.1,iz:23.3,pc:"B. Slowik",px:0,def:8.7,p:["@GB","LAC","BUF"],ppg:21.0,pa:34,ra:26,qopt:1,dome:0},
+MIN:{olAvg:13.8,clay:11,ybco:1.60,qbp:38.4,oz:24.6,iz:19.0,pc:"K. O'Connell",px:0,def:-20.5,p:["DET","WAS","@NYJ"],ppg:23.0,pa:34,ra:26,qopt:1,dome:1},
+NE :{olAvg:14.8,clay:16,ybco:1.64,qbp:38.3,oz:17.3,iz:14.0,pc:"J. McDaniels",px:0,def:0.0,p:["@KC","@NYJ","DEN"],ppg:22.5,pa:34,ra:27,qopt:1,dome:0},
+NO :{olAvg:20.0,clay:23,ybco:0.76,qbp:34.6,oz:15.6,iz:29.7,pc:"K. Moore",px:0,def:-8.1,p:["@TB","ARI","@ATL"],ppg:19.5,pa:35,ra:25,qopt:0,dome:1},
+NYG:{olAvg:17.5,clay:19,ybco:1.54,qbp:37.8,oz:20.7,iz:24.3,pc:"M. Nagy",px:1,def:5.6,p:["CLE","@DET","@DAL"],ppg:21.0,pa:33,ra:27,qopt:1,dome:0},
+NYJ:{olAvg:17.0,clay:14,ybco:1.95,qbp:39.9,oz:10.0,iz:35.7,pc:"F. Reich",px:1,def:9.6,p:["@ARI","NE","MIN"],ppg:21.5,pa:33,ra:28,qopt:0,dome:0},
+PHI:{olAvg:2.5,clay:2,ybco:1.47,qbp:33.0,oz:25.6,iz:24.8,pc:"S. Mannion",px:1,def:-13.8,p:["SEA","HOU","@SF"],ppg:26.0,pa:31,ra:31,qopt:1,dome:0},
+PIT:{olAvg:18.0,clay:24,ybco:0.93,qbp:22.6,oz:21.5,iz:30.3,pc:"M. McCarthy",px:0,def:8.8,p:["BAL","CAR","@TEN"],ppg:21.0,pa:33,ra:27,qopt:0,dome:0},
+SEA:{olAvg:14.8,clay:10,ybco:0.99,qbp:29.2,oz:32.0,iz:25.6,pc:"B. Fleury",px:1,def:-9.4,p:["@PHI","LAR","@CAR"],ppg:23.0,pa:34,ra:27,qopt:0,dome:0},
+SF :{olAvg:6.8,clay:7,ybco:0.84,qbp:31.9,oz:32.0,iz:25.6,pc:"K. Shanahan",px:0,def:4.9,p:["@LAC","@KC","PHI"],ppg:24.0,pa:33,ra:28,qopt:0,dome:0},
+TB :{olAvg:6.3,clay:6,ybco:1.43,qbp:31.6,oz:50.5,iz:13.0,pc:"Z. Robinson",px:0,def:4.0,p:["NO","@ATL","LAR"],ppg:23.5,pa:35,ra:26,qopt:0,dome:0},
+TEN:{olAvg:29.8,clay:29,ybco:1.03,qbp:36.6,oz:18.0,iz:24.0,pc:"B. Daboll",px:0,def:5.5,p:["IND","@LV","PIT"],ppg:19.5,pa:33,ra:26,qopt:0,dome:0},
+WAS:{olAvg:22.3,clay:17,ybco:1.39,qbp:32.8,oz:14.3,iz:18.4,pc:"D. Blough",px:1,def:14.2,p:["ATL","@MIN","@JAX"],ppg:22.0,pa:33,ra:29,qopt:1,dome:0}
+};
+// Week 14 opponents, used only when the playoff window is widened to 14-17.
+const W14 = {ARI:"HOU",ATL:"CAR",BAL:"NYJ",BUF:"NE",CAR:"@ATL",CHI:"MIN",CIN:"CLE",CLE:"@CIN",DAL:"WAS",DEN:"LAC",DET:"TB",GB:"SF",HOU:"@ARI",IND:"JAX",JAX:"@IND",KC:"LV",LV:"@KC",LAC:"@DEN",LAR:"NO",MIA:"PIT",MIN:"@CHI",NE:"@BUF",NO:"@LAR",NYG:"PHI",NYJ:"@BAL",PHI:"@NYG",PIT:"@MIA",SEA:"TEN",SF:"@GB",TB:"@DET",TEN:"@SEA",WAS:"@DAL"};
+
+/* Cold-weather outdoor venues drag down passing volume in December. */
+const COLD = new Set(["BUF","GB","CHI","NE","NYJ","NYG","DEN","PIT","CLE","BAL","CIN","KC","PHI","WAS","SEA","TEN","CAR"]);
+
+/* ================================================================
+   2. PLAYER LAYER
+   Shared : n name, t team, adp Underdog BBM VII ADP, gp projected games,
+            fl injury flag (out/q/up), tag, note
+   RB     : oz/iz  outside-/inside-zone YPC (sourced where published)
+            ru rush share, gl goal-line share, rr route participation,
+            tg target share, ex explosive-run grade, vu QB TD-vulture risk,
+            hc handcuff-to (player they back up)
+   WR     : sl slot rate, tg target share, rz red-zone target share,
+            ad aDOT, dp deep/big-play grade, sp separation grade,
+            cm target-competition grade (higher = tougher room)
+   QB     : rY pass yards/gm, rT pass TD/gm, in INT/gm, qr rush yards/gm,
+            qt rush TD/gm
+   TE     : rr route rate, tg target share, rz red-zone share, sp grade,
+            wd "two-high draw" — how much the WR room forces split-safety
+            looks that vacate the middle (the user's TE thesis, modeled)
+   ================================================================ */
+const P = [
+/* ---------------- RUNNING BACKS ---------------- */
+{n:"Jahmyr Gibbs",t:"DET",p:"RB",adp:1.1,gp:16.6,oz:4.9,iz:5.0,ru:.60,gl:.42,rr:.46,tg:.155,ex:92,vu:.06,note:"Petzing inherits the league's lowest combined zone rate but Detroit's gap scheme still funnels Gibbs into space. Elite on both zone concepts — 4.9 out / 5.0 in is the only top-10 back above 4.8 on each. Pass-game floor is the separator."},
+{n:"Bijan Robinson",t:"ATL",p:"RB",adp:2.0,gp:16.8,oz:4.5,iz:3.3,ru:.66,gl:.55,rr:.52,tg:.175,ex:84,vu:.05,note:"Bell-cow usage plus the highest route rate of any first-round back. Inside-zone efficiency (3.3) is the soft spot and Atlanta's line grades 13th — the volume, not the blocking, carries this."},
+{n:"Christian McCaffrey",t:"SF",p:"RB",adp:6.1,gp:14.2,oz:3.6,iz:4.1,ru:.58,gl:.48,rr:.60,tg:.20,ex:70,vu:.06,fl:"q",note:"Shanahan's 32.0% outside-zone rate is the league's third-highest, but SF's 0.84 yards before contact is 27th — CMC is creating it himself at 30. Brutal Wk 15–17 draw (@LAC, @KC, PHI) is the real problem for a best-ball roster."},
+{n:"Jonathan Taylor",t:"IND",p:"RB",adp:8.0,gp:16.4,oz:5.1,iz:4.4,ru:.68,gl:.60,rr:.30,tg:.09,ex:88,vu:.10,note:"Steichen runs the 4th-highest inside-zone rate and Taylor is a 4.4 IZ back behind a top-half line. The Wk 15–16 slate (TEN, CIN — two of the seven most generous defenses) is arguably the best playoff two-week draw at the position."},
+{n:"Ashton Jeanty",t:"LV",p:"RB",adp:11.4,gp:16.5,oz:4.1,iz:3.3,ru:.67,gl:.58,rr:.42,tg:.13,ex:80,vu:.05,note:"Kubiak's 29.2% outside-zone rate is a scheme fit on paper, but Jeanty's 4.1 OZ / 3.3 IZ came behind a line whose 0.69 yards before contact ranked dead last. Volume is real; the blocking is a genuine drag."},
+{n:"James Cook",t:"BUF",p:"RB",adp:11.6,gp:16.3,oz:5.3,iz:5.1,ru:.58,gl:.40,rr:.44,tg:.13,ex:89,vu:.26,note:"Best pure efficiency profile in the top 15 — 5.3/5.1 behind the No. 4 line at 1.77 yards before contact. Allen's goal-line vulture rate is the tax you pay, and it is a big one."},
+{n:"Omarion Hampton",t:"LAC",p:"RB",adp:14.6,gp:16.2,oz:4.7,iz:2.4,ru:.70,gl:.62,rr:.48,tg:.145,ex:76,vu:.12,note:"McDaniel's outside-zone tilt (27.8%) matches Hampton's 4.7 OZ, and that matters because his 2.4 inside-zone mark is the worst among every back drafted in the first four rounds. Workload is enormous; LA's 42.5% pressure rate caps the passing script."},
+{n:"Kenneth Walker III",t:"KC",p:"RB",adp:15.2,gp:15.8,oz:5.2,iz:5.6,ru:.62,gl:.44,rr:.40,tg:.125,ex:87,vu:.20,note:"New home, and the numbers travel: 5.6 inside-zone YPC is the best mark of any back inside ADP 40. Reid's red-zone creativity cuts both ways — Mahomes and the passing game eat scores."},
+{n:"Chase Brown",t:"CIN",p:"RB",adp:16.0,gp:16.1,oz:3.5,iz:4.5,ru:.63,gl:.50,rr:.55,tg:.16,ex:74,vu:.08,note:"Cincinnati runs the league's lowest outside-zone rate (13.1%) and the 4th-highest inside-zone rate — that is the exact split Brown wants (4.5 IZ vs 3.5 OZ). Receiving role in a 38-attempt passing offense is the ceiling driver."},
+{n:"Derrick Henry",t:"BAL",p:"RB",adp:17.4,gp:15.9,oz:5.7,iz:3.9,ru:.64,gl:.52,rr:.16,tg:.05,ex:90,vu:.30,note:"Still 5.7 on outside zone at this age, and Doyle's proxied 26.5% OZ rate fits. Two hard limits: essentially no route tree, and Lamar takes the most goal-line work of any QB in football."},
+{n:"De'Von Achane",t:"MIA",p:"RB",adp:18.1,gp:15.6,oz:5.6,iz:6.1,ru:.57,gl:.35,rr:.62,tg:.19,ex:96,vu:.14,note:"Best efficiency in the entire sample (5.6 / 6.1) inside Slowik's 34.1% outside-zone attack — but Miami's line is 30th and 0.99 yards before contact means every yard is earned. Highest week-winning variance of any back."},
+{n:"Jeremiyah Love",t:"ARI",p:"RB",adp:26.7,gp:16.2,oz:4.6,iz:4.2,est:1,ru:.62,gl:.52,rr:.44,tg:.13,ex:86,vu:.10,tag:"Rookie",note:"Mike LaFleur brings the Rams' zone distribution to a line that jumped to 1.66 yards before contact. Rookie splits are estimated. Indoor Wk 15 and 17 with a soft NO game between them."},
+{n:"Kyren Williams",t:"LAR",p:"RB",adp:31.8,gp:16.0,oz:5.2,iz:4.6,ru:.63,gl:.58,rr:.38,tg:.115,ex:72,vu:.08,note:"McVay's back behind the No. 3 composite line. Corum is the live threat to the touchdown share, but Kyren's goal-line grip has survived three straight camps."},
+{n:"Breece Hall",t:"NYJ",p:"RB",adp:29.5,gp:16.0,oz:4.0,iz:3.9,ru:.61,gl:.48,rr:.50,tg:.16,ex:83,vu:.06,note:"Reich's proxied splits are the most extreme in the league — 35.7% inside zone against 10.0% outside — behind a line generating a league-best 1.95 yards before contact. Hall is a 4.0/3.9 back; the blocking, not the scheme fit, is the case."},
+{n:"Javonte Williams",t:"DAL",p:"RB",adp:36.2,gp:15.9,oz:4.7,iz:4.3,ru:.62,gl:.55,rr:.40,tg:.12,ex:70,vu:.10,note:"Dallas plays the softest defensive schedule in football in Weeks 15–17 by SAFPA and is indoors twice. Balanced 4.7/4.3 splits fit Schottenheimer's even distribution."},
+{n:"Josh Jacobs",t:"GB",p:"RB",adp:40.8,gp:15.8,oz:2.8,iz:3.3,ru:.65,gl:.66,rr:.36,tg:.11,ex:58,vu:.12,note:"The efficiency has cratered — 2.8 OZ / 3.3 IZ are both bottom-five among starters, behind the 28th-graded line. This is now a pure touchdown-equity bet, and those are the ones that break."},
+{n:"Travis Etienne Jr.",t:"NO",p:"RB",adp:39.6,gp:15.7,oz:6.4,iz:3.9,ru:.60,gl:.45,rr:.48,tg:.15,ex:91,vu:.08,note:"6.4 outside-zone YPC is top-three in the league — and Kellen Moore calls the 2nd-highest inside-zone rate (29.7%) behind a line at 0.76 yards before contact, 30th. A near-perfect scheme mismatch."},
+{n:"Cam Skattebo",t:"NYG",p:"RB",adp:43.9,gp:15.8,oz:4.7,iz:3.5,ru:.60,gl:.60,rr:.44,tg:.14,ex:66,vu:.18,note:"Nagy's proxied rates plus a genuine goal-line grip. Dart's designed runs skim scores, and the Week 17 trip to Dallas is the best single matchup on the Giants' calendar."},
+{n:"Bucky Irving",t:"TB",p:"RB",adp:55.8,gp:15.9,oz:2.2,iz:4.3,ru:.55,gl:.42,rr:.52,tg:.16,ex:78,vu:.08,note:"Zac Robinson calls outside zone on 50.5% of runs — the highest rate in the NFL by 16 points — and Irving averages 2.2 YPC on it against 4.3 inside. That is the single worst scheme-fit mismatch on the board."},
+{n:"David Montgomery",t:"HOU",p:"RB",adp:48.6,gp:15.4,oz:4.1,iz:5.0,ru:.55,gl:.62,rr:.28,tg:.08,ex:56,vu:.08,note:"Caley's 24.6% inside-zone rate suits a 5.0 IZ back, but Houston's line is 29th and the Weeks 15–17 slate (JAX, @PHI, @GB) is one of the four worst in football."},
+{n:"D'Andre Swift",t:"CHI",p:"RB",adp:50.1,gp:15.6,oz:4.8,iz:4.9,ru:.52,gl:.40,rr:.54,tg:.155,ex:79,vu:.22,note:"Ben Johnson's line generates 1.80 yards before contact, 2nd in the league, and Swift is balanced at 4.8/4.9. Caleb's short-yardage keepers and a genuine committee with Monangai cap the ceiling."},
+{n:"Bhayshul Tuten",t:"JAX",p:"RB",adp:51.2,gp:15.8,oz:4.0,iz:4.2,ru:.58,gl:.48,rr:.42,tg:.125,ex:85,vu:.14,tag:"Breakout",note:"Coen's offense and a Week 16–17 pair against Dallas and Washington — the two most generous defenses in the league by SAFPA. That is the best back-to-back playoff draw of any running back."},
+{n:"TreVeyon Henderson",t:"NE",p:"RB",adp:53.1,gp:15.7,oz:6.0,iz:4.4,ru:.54,gl:.38,rr:.50,tg:.15,ex:93,vu:.20,note:"6.0 outside-zone YPC behind a line at 1.64 yards before contact. The catch: McDaniels calls the lowest inside-zone rate (14.0%) and the 3rd-lowest outside-zone rate in football — this is a gap-and-duo offense, so the zone edge is partly stranded."},
+{n:"Quinshon Judkins",t:"CLE",p:"RB",adp:53.5,gp:15.8,oz:3.5,iz:3.9,ru:.66,gl:.60,rr:.36,tg:.10,ex:64,vu:.08,note:"Monken's 32.2% outside-zone rate paired with 0.56 yards before contact — the worst run-blocking figure in the NFL by a wide margin — and a 46.5% pressure rate. Enormous workload attached to the league's least functional offense."},
+{n:"Jaylen Warren",t:"PIT",p:"RB",adp:72.0,gp:15.7,oz:5.4,iz:4.2,ru:.50,gl:.38,rr:.56,tg:.17,ex:81,vu:.10,note:"McCarthy runs the league's highest inside-zone rate (30.3%) and Warren is better outside. Pass-game role keeps the floor; Dowdle splits the early downs."},
+{n:"Tony Pollard",t:"TEN",p:"RB",adp:74.8,gp:15.6,oz:5.0,iz:4.2,ru:.58,gl:.45,rr:.44,tg:.13,ex:77,vu:.08,note:"Solid 5.0/4.2 splits stuck behind the 30th-graded line in a 19.5-point offense. Week 15 vs Indy and Week 17 vs Pittsburgh are both plus matchups."},
+{n:"RJ Harvey",t:"DEN",p:"RB",adp:86.6,gp:15.7,oz:4.0,iz:2.6,ru:.52,gl:.46,rr:.48,tg:.145,ex:82,vu:.10,note:"The No. 1 offensive line in football at 1.66 yards before contact — every Denver back gets a floor. Harvey's 2.6 inside-zone number is alarming, but Webb's proxied 13.8% IZ rate means he barely runs it."},
+{n:"Rico Dowdle",t:"PIT",p:"RB",adp:87.7,gp:15.6,oz:6.6,iz:3.7,ru:.44,gl:.48,rr:.30,tg:.08,ex:86,vu:.10,note:"6.6 outside-zone YPC in an offense that calls the most inside zone in the league. Scheme is actively working against the skill."},
+{n:"Chuba Hubbard",t:"CAR",p:"RB",adp:81.9,gp:15.4,oz:3.4,iz:3.3,ru:.55,gl:.50,rr:.38,tg:.11,ex:52,vu:.10,note:"Carolina's line climbed to 8th but Hubbard is 3.4/3.3 — below replacement on both concepts. Brooks returning compresses the workload further."},
+{n:"Rhamondre Stevenson",t:"NE",p:"RB",adp:76.4,gp:15.5,oz:2.9,iz:4.7,ru:.40,gl:.52,rr:.34,tg:.09,ex:48,vu:.20,note:"4.7 inside-zone efficiency in the offense that runs inside zone least. Retains short-yardage work, which is most of the value."},
+{n:"Kenneth Gainwell",t:"TB",p:"RB",adp:107.1,gp:15.5,oz:2.5,iz:5.2,ru:.34,gl:.34,rr:.50,tg:.145,ex:60,vu:.08,note:"5.2 inside-zone YPC on a team that calls it 13.0% of the time — the second-worst fit on the board after his own backfield-mate. Receiving work is the only path."},
+{n:"Kyle Monangai",t:"CHI",p:"RB",adp:95.8,gp:15.7,oz:5.2,iz:3.6,ru:.36,gl:.44,rr:.28,tg:.07,ex:73,vu:.22,tag:"Breakout",note:"5.2 outside-zone YPC behind the 2nd-best run-blocking line, in the offense that calls outside zone 26.5% of the time. If Swift's snaps slip this is a starter's workload at a bench price."},
+{n:"Blake Corum",t:"LAR",p:"RB",adp:90.7,gp:15.9,oz:6.6,iz:4.1,ru:.32,gl:.35,rr:.26,tg:.07,ex:84,vu:.08,hc:"Kyren Williams",note:"6.6 outside-zone YPC — tied for the best mark in the sample — behind the No. 3 line. The highest-equity handcuff in the draft: a Kyren injury makes this a weekly RB1."},
+{n:"J.K. Dobbins",t:"DEN",p:"RB",adp:98.4,gp:14.9,oz:6.9,iz:3.4,ru:.34,gl:.38,rr:.30,tg:.08,ex:88,vu:.10,hc:"RJ Harvey",note:"6.9 outside-zone YPC is the second-best figure in the league, and Denver's line is No. 1. Webb's scheme barely runs inside zone, which hides Dobbins' weakness."},
+{n:"Jonathon Brooks",t:"CAR",p:"RB",adp:92.7,gp:14.0,oz:4.3,iz:4.0,est:1,ru:.40,gl:.40,rr:.40,tg:.115,ex:79,vu:.10,fl:"q",tag:"Bounce-back",note:"No usable zone splits — two lost seasons. Carolina's line is 8th and Idzik's proxied 28.6% inside-zone rate is the 3rd-highest. Pure upside dart."},
+{n:"Rachaad White",t:"WAS",p:"RB",adp:108.6,gp:15.6,oz:3.2,iz:5.3,ru:.46,gl:.42,rr:.56,tg:.17,ex:58,vu:.24,note:"5.3 inside-zone YPC lands in Washington's proxied 18.4% IZ scheme. Daniels-style keepers take the short-yardage scores; the receiving role is the reason to care."},
+{n:"Jacory Croskey-Merritt",t:"WAS",p:"RB",adp:118.6,gp:15.4,oz:7.9,iz:2.2,ru:.40,gl:.40,rr:.24,tg:.06,ex:95,vu:.24,tag:"Boom",note:"7.9 outside-zone YPC is the highest figure anywhere in this dataset — and 2.2 inside is the lowest. A pure explosive-play lottery ticket in a scheme that runs neither concept much."},
+{n:"Aaron Jones",t:"MIN",p:"RB",adp:122.8,gp:14.6,oz:4.0,iz:3.6,ru:.46,gl:.40,rr:.46,tg:.14,ex:62,vu:.16,note:"O'Connell's offense with a 1.60 yards-before-contact line. Age and the Mason committee cap it; Wk 16 vs Washington is a smash spot."},
+{n:"Jordan Mason",t:"MIN",p:"RB",adp:111.3,gp:15.4,oz:4.6,iz:4.4,est:1,ru:.44,gl:.50,rr:.20,tg:.05,ex:70,vu:.16,hc:"Aaron Jones",note:"Holds the early-down and goal-line role. If Jones misses time this becomes a every-week starter behind an 11th-ranked line."},
+{n:"Isiah Pacheco",t:"DET",p:"RB",adp:151.4,gp:15.4,oz:4.2,iz:4.3,est:1,ru:.28,gl:.34,rr:.18,tg:.05,ex:66,vu:.06,hc:"Jahmyr Gibbs",note:"The direct handcuff to the No. 1 overall pick in a 27-point offense. That combination is worth more than the standalone projection suggests."},
+{n:"Zach Charbonnet",t:"SEA",p:"RB",adp:161.4,gp:14.8,oz:4.4,iz:4.5,est:1,ru:.34,gl:.46,rr:.30,tg:.09,ex:64,vu:.08,fl:"q",hc:"Jadarian Price",note:"Opened camp on PUP with a knee. Retains goal-line equity in Fleury's proxied Shanahan-tree scheme."},
+{n:"Jadarian Price",t:"SEA",p:"RB",adp:62.5,gp:15.6,oz:4.8,iz:4.3,est:1,ru:.56,gl:.42,rr:.40,tg:.12,ex:87,vu:.08,tag:"Rookie",note:"ADP moved 47 spots after the draft. Fleury's proxied 32.0% outside-zone rate is a strong landing spot for a burner, but Seattle's Wk 15–17 slate (@PHI, LAR, @CAR) is bottom-five."},
+{n:"Tank Bigsby",t:"PHI",p:"RB",adp:161.6,gp:15.4,oz:4.5,iz:4.0,est:1,ru:.26,gl:.30,rr:.14,tg:.04,ex:68,vu:.28,hc:"Saquon Barkley",note:"Handcuff to Barkley behind the No. 2 line. Hurts erases most of the goal-line value even in the injury scenario."},
+{n:"Saquon Barkley",t:"PHI",p:"RB",adp:13.4,gp:16.1,oz:3.1,iz:3.7,ru:.64,gl:.50,rr:.36,tg:.10,ex:83,vu:.34,note:"The efficiency fell off a cliff — 3.1 outside / 3.7 inside behind the No. 2 line in football is a genuine warning. Hurts' tush-push monopoly is the heaviest QB vulture tax at the position, and Philly's Wk 15–17 (SEA, HOU, @SF) is the hardest in the league."},
+{n:"Alvin Kamara",t:"NO",p:"RB",adp:164.6,gp:14.6,oz:3.6,iz:3.4,est:1,ru:.34,gl:.36,rr:.52,tg:.16,ex:44,vu:.08,note:"Receiving volume only, on the 23rd-graded line in a 19.5-point offense."},
+{n:"Tyler Allgeier",t:"ARI",p:"RB",adp:157.7,gp:15.4,oz:4.3,iz:4.6,est:1,ru:.30,gl:.40,rr:.14,tg:.04,ex:60,vu:.10,hc:"Jeremiyah Love",note:"Short-yardage complement behind a line at 1.66 yards before contact."},
+{n:"Woody Marks",t:"HOU",p:"RB",adp:141.3,gp:15.3,oz:4.2,iz:4.4,est:1,ru:.34,gl:.28,rr:.46,tg:.13,ex:62,vu:.08,hc:"David Montgomery",note:"Passing-down back in a 35-attempt offense; the receiving role survives even when Montgomery is healthy."},
+{n:"Dylan Sampson",t:"CLE",p:"RB",adp:171.8,gp:15.2,oz:4.4,iz:3.8,est:1,ru:.28,gl:.24,rr:.42,tg:.12,ex:72,vu:.08,hc:"Quinshon Judkins",note:"Third-down role on the worst run-blocking line in football."},
+{n:"Tyrone Tracy Jr.",t:"NYG",p:"RB",adp:134.4,gp:15.3,oz:4.5,iz:3.9,est:1,ru:.32,gl:.26,rr:.44,tg:.13,ex:74,vu:.18,hc:"Cam Skattebo",note:"Change-of-pace and passing-down work; the Week 17 Dallas game is a shootout script."},
+{n:"Keaton Mitchell",t:"LAC",p:"RB",adp:135.9,gp:15.0,oz:5.1,iz:3.2,est:1,ru:.22,gl:.16,rr:.34,tg:.10,ex:90,vu:.12,hc:"Omarion Hampton",note:"Pure speed in McDaniel's outside-zone scheme. Explosive-play equity well beyond the touch count."},
+{n:"Ray Davis",t:"BUF",p:"RB",adp:188.8,gp:15.3,oz:4.3,iz:4.5,est:1,ru:.26,gl:.28,rr:.26,tg:.07,ex:64,vu:.26,hc:"James Cook",note:"Handcuff to Cook behind the No. 4 line, in the league's highest-scoring projected offense."},
+{n:"Jaydon Blue",t:"DAL",p:"RB",adp:188.6,gp:15.2,oz:4.6,iz:3.7,est:1,ru:.24,gl:.18,rr:.36,tg:.10,ex:81,vu:.10,hc:"Javonte Williams",note:"Explosive backup attached to the easiest Week 15–17 defensive schedule in football."},
+{n:"Sean Tucker",t:"TB",p:"RB",adp:188.8,gp:15.2,oz:4.9,iz:3.4,est:1,ru:.22,gl:.18,rr:.30,tg:.08,ex:76,vu:.08,hc:"Bucky Irving",note:"Actually the best outside-zone fit in a Tampa backfield that calls it 50.5% of the time."},
+{n:"Chris Rodriguez Jr.",t:"JAX",p:"RB",adp:129.3,gp:14.8,oz:4.1,iz:4.6,est:1,ru:.28,gl:.44,rr:.14,tg:.04,ex:52,vu:.14,fl:"q",hc:"Bhayshul Tuten",note:"Foot injury in camp. Goal-line role in an offense with an elite Week 16–17 draw."},
+{n:"Brian Robinson Jr.",t:"ATL",p:"RB",adp:175.1,gp:15.2,oz:3.8,iz:4.1,est:1,ru:.22,gl:.30,rr:.12,tg:.03,ex:48,vu:.06,hc:"Bijan Robinson",note:"Short-yardage insurance behind an every-down workhorse."},
+{n:"Tyjae Spears",t:"TEN",p:"RB",adp:153.0,gp:14.9,oz:4.6,iz:3.8,est:1,ru:.30,gl:.28,rr:.40,tg:.12,ex:78,vu:.08,hc:"Tony Pollard",note:"Explosive complement, but the 30th-ranked line is a hard ceiling."},
+{n:"MarShawn Lloyd",t:"GB",p:"RB",adp:191.9,gp:14.6,oz:4.7,iz:3.9,est:1,ru:.22,gl:.16,rr:.28,tg:.08,ex:80,vu:.12,hc:"Josh Jacobs",note:"Jacobs' efficiency collapse (2.8/3.3) makes this handcuff live earlier than most."},
+{n:"Emmett Johnson",t:"KC",p:"RB",adp:196.8,gp:15.0,oz:4.4,iz:4.2,est:1,ru:.22,gl:.20,rr:.30,tg:.08,ex:70,vu:.20,hc:"Kenneth Walker III",note:"Reid backfield lottery ticket."},
+{n:"Jonah Coleman",t:"DEN",p:"RB",adp:158.9,gp:15.0,oz:4.5,iz:4.0,est:1,ru:.20,gl:.24,rr:.22,tg:.06,ex:71,vu:.10,hc:"RJ Harvey",note:"Third back on the best run-blocking line in football — that alone makes him worth a late look."},
+{n:"Mike Washington",t:"LV",p:"RB",adp:198.9,gp:15.0,oz:4.2,iz:3.6,est:1,ru:.20,gl:.22,rr:.18,tg:.05,ex:66,vu:.06,hc:"Ashton Jeanty",note:"Direct backup to a 67% workload back."},
+{n:"Kaelon Black",t:"SF",p:"RB",adp:200.0,gp:15.0,oz:4.6,iz:4.1,est:1,ru:.22,gl:.24,rr:.30,tg:.09,ex:73,vu:.06,hc:"Christian McCaffrey",note:"Shanahan backfields print value when the starter misses time — and McCaffrey has missed time."},
+
+/* ---------------- WIDE RECEIVERS ---------------- */
+{n:"Ja'Marr Chase",t:"CIN",p:"WR",adp:3.1,sl:.33,gp:16.6,tg:.30,rz:.28,ad:11.4,dp:94,sp:96,cm:62,note:"Cincinnati throws it 38 times a game — the highest projected volume in the league — and Chase is a 33% slot receiver, which means the alignment flexibility beats bracket coverage. Week 16 at Indy and Week 17 vs Baltimore are both top-quartile matchups."},
+{n:"Puka Nacua",t:"LAR",p:"WR",adp:4.0,sl:.33,gp:15.9,tg:.29,rz:.24,ad:9.6,dp:74,sp:95,cm:70,note:"Volume monster with Stafford and the 3rd-ranked line keeping him clean (27.4% pressure, 2nd-lowest). The problem is December: LAR's Week 15–17 slate grades out with the fewest plus matchups on the entire WR board."},
+{n:"Jaxon Smith-Njigba",t:"SEA",p:"WR",adp:5.5,sl:.22,gp:16.4,tg:.30,rz:.26,ad:11.8,dp:86,sp:93,cm:48,note:"Moved off the slot to a true X role and the target share held. Cleanest target room of any elite receiver — nobody else on Seattle commands double-digit share."},
+{n:"Amon-Ra St. Brown",t:"DET",p:"WR",adp:7.1,sl:.55,gp:16.5,tg:.27,rz:.30,ad:8.4,dp:64,sp:97,cm:66,note:"A 55% slot rate is the highest of any top-10 receiver, and it pairs with a 30% red-zone target share in a 27-point offense. Detroit indoors in Week 15 at Minnesota is the one bad draw."},
+{n:"CeeDee Lamb",t:"DAL",p:"WR",adp:9.5,sl:.34,gp:16.2,tg:.28,rz:.27,ad:10.6,dp:82,sp:94,cm:64,note:"36 pass attempts a game and Pickens drawing the No. 2 corner. Dallas is indoors in Week 15 and 17 against a Giants defense that ranks in the softer half."},
+{n:"Justin Jefferson",t:"MIN",p:"WR",adp:10.2,sl:.25,gp:16.3,tg:.29,rz:.25,ad:12.1,dp:90,sp:98,cm:56,note:"Still the best route runner alive, now catching passes from Murray. Minnesota's 38.4% pressure rate is the concern and the Week 15–17 slate offers zero genuinely soft coverage draws."},
+{n:"A.J. Brown",t:"NE",p:"WR",adp:18.5,sl:.13,gp:15.9,tg:.27,rz:.29,ad:12.6,dp:92,sp:90,cm:58,tag:"New team",note:"A 13% slot rate means he lives outside against No. 1 corners every week — with Maye that is a fine trade. New England's line is 16th and 1.64 yards before contact; McDaniels will feed him in the red zone."},
+{n:"Drake London",t:"ATL",p:"WR",adp:20.7,sl:.30,gp:16.1,tg:.29,rz:.32,ad:10.9,dp:70,sp:88,cm:52,note:"A 32% red-zone target share is elite and the target room behind him is empty. Tua's arrival raises the completion floor; Atlanta's Week 15–17 draw is the flaw."},
+{n:"Nico Collins",t:"HOU",p:"WR",adp:22.8,sl:.21,gp:15.6,tg:.28,rz:.28,ad:13.2,dp:93,sp:89,cm:58,note:"Huge aDOT behind the 29th-ranked line — the boom weeks are real and so are the 3-catch duds. The Week 16 trip to Philadelphia is the single worst WR matchup on the calendar."},
+{n:"George Pickens",t:"DAL",p:"WR",adp:23.6,sl:.18,gp:15.8,tg:.22,rz:.22,ad:13.8,dp:95,sp:82,cm:74,note:"Pure deep threat opposite Lamb in a 36-attempt offense playing indoors twice in the fantasy playoffs. Highest spike-week profile of any receiver inside the top 30."},
+{n:"Rashee Rice",t:"KC",p:"WR",adp:24.9,sl:.41,gp:15.4,tg:.27,rz:.26,ad:8.1,dp:58,sp:92,cm:64,note:"A 41% slot rate in Reid's offense is the most target-efficient alignment in football. Kansas City's Week 15–17 (NE, SF, @LAC) is a bottom-five draw."},
+{n:"Malik Nabers",t:"NYG",p:"WR",adp:27.2,sl:.23,gp:15.4,tg:.31,rz:.27,ad:11.2,dp:88,sp:93,cm:42,fl:"q",tag:"ACL return",note:"Practicing and tracking to Week 1 after the ACL. The highest target share in the dataset on a team with no other receiver above 12% — and Week 17 at Dallas closes the season against the league's most generous defense."},
+{n:"DeVonta Smith",t:"PHI",p:"WR",adp:27.2,sl:.57,gp:16.0,tg:.26,rz:.24,ad:10.4,dp:76,sp:94,cm:60,note:"A 57% slot rate is the second-highest on the board — Philadelphia moved him inside permanently, which is where the volume is in a 31-attempt run-first offense. Rough playoff slate."},
+{n:"Chris Olave",t:"NO",p:"WR",adp:30.1,sl:.41,gp:15.2,tg:.30,rz:.24,ad:11.0,dp:84,sp:91,cm:50,note:"Enormous share on a bad offense with a rookie-ish quarterback. The 41% slot rate protects the floor; the 19.5-point team total caps everything."},
+{n:"Zay Flowers",t:"BAL",p:"WR",adp:31.0,sl:.32,gp:16.0,tg:.27,rz:.22,ad:10.2,dp:81,sp:90,cm:56,note:"Baltimore only throws it 31 times a game, but Week 17 at Cincinnati is a genuine shootout spot and Flowers is the one Raven who wins on volume."},
+{n:"Emeka Egbuka",t:"TB",p:"WR",adp:31.9,sl:.35,gp:16.0,tg:.27,rz:.26,ad:10.1,dp:78,sp:90,cm:58,tag:"Breakout",note:"Takes over the alpha role in a 35-attempt offense. Tampa's Week 15–17 grades out favorably and the 35% slot rate keeps him away from shadow corners."},
+{n:"Tee Higgins",t:"CIN",p:"WR",adp:33.9,sl:.20,gp:15.2,tg:.23,rz:.29,ad:12.8,dp:89,sp:87,cm:86,note:"The most talented WR2 in football, and 29% red-zone share in a 38-attempt offense is the reason. Chase is the tax — the highest target-competition grade on the board."},
+{n:"Ladd McConkey",t:"LAC",p:"WR",adp:35.0,sl:.64,gp:16.0,tg:.28,rz:.22,ad:9.2,dp:72,sp:95,cm:54,note:"A 64% slot rate is the highest of any receiver here. That is a floor machine — but LA's 42.5% pressure rate is the league's worst and the Week 15–17 slate has zero soft draws."},
+{n:"Tetairoa McMillan",t:"CAR",p:"WR",adp:39.0,sl:.19,gp:15.9,tg:.29,rz:.30,ad:12.4,dp:87,sp:85,cm:44,tag:"Breakout",note:"Alpha X on a team with a much-improved line (8th) and a wide-open target room. 30% red-zone share on a 20.5-point offense is the bet."},
+{n:"Garrett Wilson",t:"NYJ",p:"WR",adp:40.1,sl:.37,gp:15.8,tg:.30,rz:.26,ad:11.0,dp:83,sp:94,cm:46,note:"Massive share, minimal competition, and Geno is a real upgrade in accuracy. The Jets throw it only 33 times behind a 39.9% pressure rate — and Week 17 vs Minnesota's league-best defense is a nightmare close."},
+{n:"Jaylen Waddle",t:"DEN",p:"WR",adp:40.7,sl:.22,gp:15.9,tg:.26,rz:.22,ad:11.6,dp:88,sp:92,cm:56,tag:"New team",note:"Escapes Miami for the No. 1 offensive line in football and its 27.7% pressure rate — the cleanest pocket in the league. Denver's Week 15–17 draw is the one thing holding this back."},
+{n:"Terry McLaurin",t:"WAS",p:"WR",adp:43.8,sl:.13,gp:15.6,tg:.27,rz:.26,ad:12.9,dp:90,sp:89,cm:50,note:"A 13% slot rate against No. 1 corners every week, and Washington's playoff slate is the third-hardest in football. The talent is not the issue."},
+{n:"Luther Burden III",t:"CHI",p:"WR",adp:44.9,sl:.48,gp:15.9,tg:.24,rz:.22,ad:9.4,dp:80,sp:88,cm:72,tag:"Breakout",note:"Ben Johnson's slot in a 24.5-point offense. Odunze and Loveland split the room, but the Week 17 home game against Detroit is a projected shootout."},
+{n:"Mike Evans",t:"SF",p:"WR",adp:45.6,sl:.27,gp:14.4,tg:.25,rz:.34,ad:12.2,dp:85,sp:80,cm:60,fl:"q",tag:"New team",note:"A 34% red-zone target share is the highest of any receiver on the board — Shanahan will use him exactly that way. Two problems: a camp quad strain, and San Francisco owns the hardest Week 15–17 schedule in the league by SAFPA (@LAC, @KC, PHI)."},
+{n:"D.J. Moore",t:"BUF",p:"WR",adp:56.4,sl:.32,gp:16.0,tg:.24,rz:.24,ad:10.6,dp:79,sp:89,cm:62,tag:"New team",note:"Lands in the league's highest-projected scoring offense behind the No. 4 line. Buffalo spreads it around, which is the cap — but the Week 15 and 17 draws are plus."},
+{n:"Jameson Williams",t:"DET",p:"WR",adp:51.6,sl:.24,gp:15.8,tg:.20,rz:.18,ad:14.6,dp:97,sp:81,cm:80,note:"The highest aDOT and the best deep-threat grade on the board, in a 27-point offense. Pure spike-week asset — exactly what best ball pays for."},
+{n:"Davante Adams",t:"LAR",p:"WR",adp:50.7,sl:.28,gp:15.2,tg:.22,rz:.28,ad:11.4,dp:78,sp:86,cm:82,note:"Red-zone role is intact behind Nacua, but the age curve and a poor playoff draw are both live."},
+{n:"Christian Watson",t:"GB",p:"WR",adp:57.3,sl:.31,gp:15.0,tg:.23,rz:.24,ad:13.4,dp:94,sp:83,cm:64,note:"Green Bay's Week 15–16 pair (MIA, @CHI) is two of the more generous defenses. High-variance vertical profile behind a 27th-graded line."},
+{n:"Rome Odunze",t:"CHI",p:"WR",adp:59.5,sl:.38,gp:16.0,tg:.23,rz:.26,ad:11.2,dp:82,sp:86,cm:76,note:"Behind the 3rd-best line in a Ben Johnson offense, but Burden and Loveland make this the most crowded target room in the league."},
+{n:"Carnell Tate",t:"TEN",p:"WR",adp:59.3,sl:.10,gp:15.7,tg:.26,rz:.26,ad:12.6,dp:86,sp:84,cm:48,tag:"Rookie",note:"A 10% slot rate means pure outside work as a rookie behind the 30th-ranked line — but Tennessee's Week 15 and 17 games (IND, PIT) are both plus matchups."},
+{n:"Brian Thomas Jr.",t:"JAX",p:"WR",adp:62.3,sl:.24,gp:15.9,tg:.27,rz:.26,ad:13.0,dp:93,sp:88,cm:56,note:"Coen's offense with the best back-to-back playoff draw at the position: Week 16 vs Dallas (+22.5 SAFPA) and Week 17 vs Washington (+14.2). Buy the December."},
+{n:"Jordyn Tyson",t:"NO",p:"WR",adp:63.8,sl:.30,gp:15.4,tg:.22,rz:.22,ad:11.4,dp:84,sp:85,cm:62,tag:"Rookie",note:"Rookie opposite Olave in a low-total offense. Talent is real; the environment is not."},
+{n:"Parker Washington",t:"JAX",p:"WR",adp:64.6,sl:.52,gp:15.7,tg:.21,rz:.18,ad:8.6,dp:66,sp:85,cm:70,note:"Slot volume attached to Jacksonville's elite Week 16–17 pairing."},
+{n:"Marvin Harrison Jr.",t:"ARI",p:"WR",adp:68.9,sl:.21,gp:15.8,tg:.27,rz:.28,ad:12.8,dp:88,sp:84,cm:58,note:"Mike LaFleur's arrival and a line that jumped to 1.66 yards before contact should help. Arizona's Week 15–17 is all indoors, which matters more than people price."},
+{n:"Makai Lemon",t:"PHI",p:"WR",adp:73.2,sl:.44,gp:15.6,tg:.20,rz:.18,ad:10.0,dp:79,sp:87,cm:78,tag:"Rookie",note:"Rookie in a 31-attempt run-first offense behind Smith. Cheap access to the Eagles passing game if the volume ever tilts."},
+{n:"Quentin Johnston",t:"LAC",p:"WR",adp:75.0,sl:.22,gp:15.6,tg:.21,rz:.28,ad:12.0,dp:81,sp:76,cm:70,note:"Red-zone role opposite McConkey; the 42.5% pressure rate is the problem for everyone in this passing game."},
+{n:"DK Metcalf",t:"PIT",p:"WR",adp:76.1,sl:.19,gp:15.6,tg:.25,rz:.28,ad:13.6,dp:92,sp:80,cm:72,note:"Pittsburgh allows the lowest pressure rate in the NFL (22.6%), which is exactly what a deep threat needs. Pittman's arrival splits the room, but the Week 15 and 17 draws are strong."},
+{n:"Courtland Sutton",t:"DEN",p:"WR",adp:83.3,sl:.24,gp:15.6,tg:.23,rz:.30,ad:12.2,dp:80,sp:81,cm:70,note:"30% red-zone share behind the No. 1 line. Waddle's arrival is a real target hit."},
+{n:"Jayden Reed",t:"GB",p:"WR",adp:83.6,sl:.58,gp:15.2,tg:.21,rz:.20,ad:9.0,dp:74,sp:88,cm:74,note:"Slot volume in a committee passing game; the Week 15–16 matchups are the draw."},
+{n:"Jordan Addison",t:"MIN",p:"WR",adp:88.4,sl:.34,gp:15.4,tg:.22,rz:.22,ad:11.8,dp:85,sp:87,cm:80,note:"WR2 behind Jefferson with Jennings now also in the room. Minnesota's Week 16 vs Washington is a smash spot."},
+{n:"Josh Downs",t:"IND",p:"WR",adp:88.4,sl:.68,gp:15.6,tg:.23,rz:.20,ad:7.8,dp:56,sp:90,cm:64,note:"The highest slot rate on the board. Indy only throws it 31 times, but Weeks 15–16 (TEN, CIN) are two of the softest defenses in football."},
+{n:"Alec Pierce",t:"IND",p:"WR",adp:81.8,sl:.13,gp:14.8,tg:.19,rz:.20,ad:16.2,dp:98,sp:72,cm:66,fl:"q",note:"Ankle surgery pushed him to PUP; expected back for Week 1. The most extreme aDOT in football — a pure boom-week lever in a low-volume offense."},
+{n:"Chris Godwin",t:"TB",p:"WR",adp:90.0,sl:.62,gp:15.0,tg:.22,rz:.22,ad:8.4,dp:60,sp:89,cm:72,note:"Slot floor behind Egbuka in a 35-attempt offense with a favorable December."},
+{n:"Michael Pittman Jr.",t:"PIT",p:"WR",adp:99.3,sl:.30,gp:15.6,tg:.23,rz:.28,ad:9.8,dp:66,sp:84,cm:74,tag:"New team",note:"Signed a three-year extension after the trade — Pittsburgh clearly wants him in the red zone. The league's lowest pressure rate helps the whole room."},
+{n:"Xavier Worthy",t:"KC",p:"WR",adp:98.6,sl:.36,gp:15.2,tg:.22,rz:.20,ad:12.4,dp:93,sp:83,cm:70,fl:"q",note:"Shoulder issue in camp. Reid manufactures touches for him, but the Chiefs' playoff slate is unforgiving."},
+{n:"Michael Wilson",t:"ARI",p:"WR",adp:95.5,sl:.42,gp:15.4,tg:.20,rz:.20,ad:9.6,dp:68,sp:82,cm:76,note:"Third option in a much-improved Arizona offense playing indoors all three playoff weeks."},
+{n:"Jakobi Meyers",t:"JAX",p:"WR",adp:106.7,sl:.55,gp:15.4,tg:.20,rz:.20,ad:9.2,dp:62,sp:88,cm:74,note:"Reliable slot attached to the league's best Week 16–17 matchup pair."},
+{n:"Matthew Golden",t:"GB",p:"WR",adp:108.6,sl:.30,gp:15.2,tg:.19,rz:.20,ad:12.6,dp:87,sp:83,cm:80,note:"Green Bay's target room is genuinely five deep, which is why he is this cheap."},
+{n:"Khalil Shakir",t:"BUF",p:"WR",adp:126.3,sl:.66,gp:15.8,tg:.19,rz:.16,ad:7.6,dp:52,sp:90,cm:78,note:"Slot in the highest-scoring projected offense in football. Volume is capped; the environment is not."},
+{n:"Wan'Dale Robinson",t:"TEN",p:"WR",adp:112.1,sl:.72,gp:15.6,tg:.22,rz:.16,ad:6.8,dp:44,sp:88,cm:58,tag:"New team",note:"Extreme slot usage in Daboll's offense. Reception volume is the whole case — this profile gains the most from full PPR."},
+{n:"Romeo Doubs",t:"NE",p:"WR",adp:116.4,sl:.34,gp:15.4,tg:.18,rz:.20,ad:11.0,dp:74,sp:82,cm:84,tag:"New team",note:"Second fiddle to A.J. Brown, but Maye spreads it and New England's line is fine."},
+{n:"KC Concepcion",t:"CLE",p:"WR",adp:117.1,sl:.50,gp:15.4,tg:.24,rz:.22,ad:9.0,dp:70,sp:84,cm:52,tag:"Rookie",note:"Real target share on the worst offense in the league — 46.5% pressure rate and an unsettled quarterback room."},
+{n:"Jayden Higgins",t:"HOU",p:"WR",adp:123.5,sl:.28,gp:15.5,tg:.22,rz:.24,ad:11.4,dp:80,sp:83,cm:64,tag:"Breakout",note:"Camp buzz is loud. The Week 15–17 slate is one of the four worst in football, which is a real best-ball problem."},
+{n:"Deebo Samuel",t:"SF",p:"WR",adp:142.2,sl:.48,gp:15.4,tg:.20,rz:.22,ad:8.2,dp:78,sp:80,cm:66,tag:"Reunion",note:"Back in Shanahan's scheme on a one-year, $7M deal after Pearsall's season-ending PCL surgery. The manufactured-touch usage returns; SF's December schedule is the brutal part."},
+{n:"Rashid Shaheed",t:"SEA",p:"WR",adp:130.1,sl:.26,gp:15.4,tg:.17,rz:.14,ad:15.4,dp:96,sp:78,cm:76,note:"Field-stretcher with one of the highest aDOTs anywhere. Pure variance."},
+{n:"Jalen Coker",t:"CAR",p:"WR",adp:128.0,sl:.36,gp:15.4,tg:.20,rz:.20,ad:10.4,dp:74,sp:82,cm:70,note:"WR2 on an improving Carolina offense with a top-10 line."},
+{n:"Travis Hunter",t:"JAX",p:"WR",adp:141.2,sl:.30,gp:15.4,tg:.15,rz:.16,ad:11.6,dp:86,sp:86,cm:78,fl:"up",note:"Fully cleared from the LCL tear but Jacksonville has him primarily at corner with a receiver rotation. The route volume is the entire question."},
+{n:"Tre Harris",t:"LAC",p:"WR",adp:165.8,sl:.34,gp:15.4,tg:.17,rz:.18,ad:11.8,dp:82,sp:80,cm:76,tag:"Sleeper",note:"Locked into a starting role in Year 2 at effectively no cost."},
+{n:"Jauan Jennings",t:"MIN",p:"WR",adp:155.2,sl:.44,gp:15.2,tg:.17,rz:.22,ad:9.4,dp:60,sp:82,cm:84,tag:"New team",note:"Physical slot who will see red-zone looks behind Jefferson and Addison."},
+{n:"Jalen McMillan",t:"TB",p:"WR",adp:145.9,sl:.40,gp:15.2,tg:.16,rz:.20,ad:10.6,dp:76,sp:81,cm:80,note:"Third Tampa receiver; the December schedule is the reason to bother."},
+{n:"Adonai Mitchell",t:"NYJ",p:"WR",adp:173.0,sl:.28,gp:15.2,tg:.16,rz:.18,ad:12.8,dp:86,sp:76,cm:70,note:"Vertical complement to Garrett Wilson."},
+{n:"Tre Tucker",t:"LV",p:"WR",adp:155.7,sl:.32,gp:15.2,tg:.19,rz:.16,ad:13.2,dp:89,sp:78,cm:66,note:"Deep speed in a 34-attempt Kubiak offense that plays indoors in Week 17."},
+{n:"Calvin Ridley",t:"TEN",p:"WR",adp:187.6,sl:.24,gp:15.2,tg:.19,rz:.20,ad:13.4,dp:85,sp:78,cm:66,note:"Aging vertical piece behind the 30th-graded line, but two plus playoff matchups."},
+{n:"Darnell Mooney",t:"NYG",p:"WR",adp:199.8,sl:.30,gp:15.2,tg:.16,rz:.16,ad:12.6,dp:84,sp:78,cm:74,note:"Cheapest access to the Week 17 Dallas game."},
+{n:"Jerry Jeudy",t:"CLE",p:"WR",adp:177.9,sl:.38,gp:15.2,tg:.21,rz:.20,ad:11.2,dp:78,sp:82,cm:64,note:"Volume exists; the offense does not."},
+{n:"Omar Cooper Jr.",t:"NYJ",p:"WR",adp:145.1,sl:.42,gp:15.2,tg:.17,rz:.18,ad:10.2,dp:74,sp:82,cm:72,tag:"Rookie",note:"Rookie slot with a path to real snaps."},
+{n:"De'Zhaun Stribling",t:"SF",p:"WR",adp:146.7,sl:.36,gp:14.8,tg:.17,rz:.18,ad:10.8,dp:76,sp:80,cm:70,fl:"q",tag:"Rookie",note:"Hamstring in camp. Pearsall's injury cleared a path, but Deebo's return and Evans crowd it again."},
+{n:"Denzel Boston",t:"CLE",p:"WR",adp:156.2,sl:.26,gp:15.2,tg:.18,rz:.22,ad:12.0,dp:80,sp:78,cm:62,tag:"Rookie",note:"Size and red-zone role on a bad offense."},
+{n:"Zachariah Branch",t:"ATL",p:"WR",adp:181.2,sl:.54,gp:15.2,tg:.15,rz:.14,ad:9.0,dp:82,sp:82,cm:76,note:"Explosive slot behind London."},
+{n:"Ryan Flournoy",t:"DAL",p:"WR",adp:163.0,sl:.30,gp:15.2,tg:.15,rz:.18,ad:11.8,dp:80,sp:76,cm:86,note:"WR3 attached to the easiest playoff defensive schedule in football."},
+{n:"Malik Washington",t:"MIA",p:"WR",adp:183.0,sl:.64,gp:15.2,tg:.20,rz:.16,ad:7.4,dp:50,sp:84,cm:60,note:"Slot volume on a rebuilt Miami passing game."},
+{n:"Tank Dell",t:"HOU",p:"WR",adp:185.7,sl:.44,gp:13.8,tg:.18,rz:.18,ad:11.4,dp:88,sp:84,cm:68,fl:"q",note:"Knee. When healthy the explosive rate is genuinely elite; the availability is not."},
+{n:"Kayshon Boutte",t:"NE",p:"WR",adp:198.0,sl:.30,gp:15.2,tg:.14,rz:.16,ad:12.2,dp:78,sp:76,cm:86,note:"Third in line behind Brown and Doubs."},
+{n:"Germie Bernard",t:"PIT",p:"WR",adp:191.7,sl:.44,gp:15.2,tg:.15,rz:.16,ad:9.8,dp:70,sp:80,cm:80,tag:"Rookie",note:"Rookie slot in the league's cleanest pocket."},
+{n:"Antonio Williams",t:"WAS",p:"WR",adp:173.3,sl:.46,gp:15.2,tg:.18,rz:.18,ad:9.6,dp:72,sp:82,cm:66,note:"Slot role with Washington's dual-threat quarterback pulling defenders."},
+{n:"Isaac TeSlaa",t:"DET",p:"WR",adp:168.9,sl:.32,gp:15.2,tg:.13,rz:.16,ad:11.4,dp:76,sp:78,cm:88,note:"Fourth option in the league's second-highest scoring offense."},
+{n:"Dontayvion Wicks",t:"PHI",p:"WR",adp:189.6,sl:.34,gp:15.2,tg:.13,rz:.14,ad:11.8,dp:76,sp:74,cm:84,note:"Depth flier in a run-first offense."},
+{n:"Ted Hurst",t:"TB",p:"WR",adp:203.3,sl:.38,gp:15.0,tg:.12,rz:.14,ad:11.0,dp:74,sp:76,cm:84,tag:"Rookie",note:"Deep-bench Tampa dart."},
+{n:"Stefon Diggs",t:"FA",p:"WR",adp:132.1,sl:.40,gp:13.0,tg:.18,rz:.20,ad:10.4,dp:66,sp:80,cm:70,fl:"out",note:"Unsigned. No team, no line, no schedule — the model cannot price him and neither should a draft board until he lands."},
+{n:"Tyreek Hill",t:"FA",p:"WR",adp:215.6,sl:.42,gp:9.0,tg:.20,rz:.18,ad:12.0,dp:90,sp:82,cm:66,fl:"out",note:"Reportedly has no power in the left leg after the Week 4 knee dislocation and multiple ligament tears. Unsigned in August."},
+
+/* ---------------- QUARTERBACKS ---------------- */
+{n:"Josh Allen",t:"BUF",p:"QB",adp:35.6,gp:16.6,rY:246,rT:1.90,in:.52,qr:44,qt:.55,note:"The rushing touchdown floor is the entire position's cheat code, and Buffalo's line allows only 28.4% pressure behind 1.77 yards before contact. Week 15 vs Chicago and Week 17 at Miami are both plus draws."},
+{n:"Lamar Jackson",t:"BAL",p:"QB",adp:55.4,gp:15.8,rY:232,rT:1.85,in:.44,qr:52,qt:.50,note:"Highest rushing yardage projection at the position. Doyle's proxied scheme keeps the designed-run menu; Week 17 at Cincinnati is a shootout close."},
+{n:"Jalen Hurts",t:"PHI",p:"QB",adp:71.4,gp:16.0,rY:196,rT:1.42,in:.40,qr:38,qt:.72,note:"The tush push is worth roughly four rushing touchdowns of pure edge over the field, behind the No. 2 line. Philadelphia throws it 31 times a game and draws the hardest December slate in the league."},
+{n:"Jayden Daniels",t:"WAS",p:"QB",adp:67.5,gp:15.6,rY:224,rT:1.55,in:.48,qr:46,qt:.42,note:"Dual-threat volume with the Blough proxied scheme. Week 15 vs Atlanta is fine; Week 16 at Minnesota is the worst passing matchup in football."},
+{n:"Drake Maye",t:"NE",p:"QB",adp:66.5,gp:16.0,rY:252,rT:1.72,in:.46,qr:26,qt:.28,note:"A.J. Brown arrives and New England's line generates 1.64 yards before contact. The 38.3% pressure rate is the one real drag, and the Week 15–17 draw is bottom-five."},
+{n:"Joe Burrow",t:"CIN",p:"QB",adp:68.0,gp:15.6,rY:288,rT:2.15,in:.54,qr:8,qt:.10,note:"38 attempts a game — the highest projected passing volume in the league — with Chase and Higgins. No rushing floor at all, and a 31st-ranked line, so this is pure volume and matchup. Week 16 at Indy and Week 17 vs Baltimore are both green."},
+{n:"Caleb Williams",t:"CHI",p:"QB",adp:71.8,gp:16.0,rY:242,rT:1.66,in:.48,qr:30,qt:.34,note:"Ben Johnson's offense behind the 3rd-ranked line, with designed keepers. Week 17 hosting Detroit is a projected shootout."},
+{n:"Dak Prescott",t:"DAL",p:"QB",adp:79.9,gp:15.4,rY:272,rT:1.94,in:.56,qr:10,qt:.16,note:"36 attempts to Lamb and Pickens, indoors in Week 15 and 17. Dallas' own defense being the league's most generous is a feature here — every game projects high-scoring."},
+{n:"Justin Herbert",t:"LAC",p:"QB",adp:82.3,gp:15.8,rY:258,rT:1.76,in:.42,qr:22,qt:.26,note:"McDaniel's scheme is a real upgrade, but a 42.5% pressure rate is the worst in the league and the December slate offers nothing soft."},
+{n:"Trevor Lawrence",t:"JAX",p:"QB",adp:85.6,gp:15.8,rY:246,rT:1.70,in:.50,qr:24,qt:.30,tag:"Value",note:"Coen's offense with designed-run equity, and the Week 16–17 pair against Dallas and Washington is the softest two-week close of any quarterback. This is the playoff-schedule play at the position."},
+{n:"Patrick Mahomes",t:"KC",p:"QB",adp:94.5,gp:15.8,rY:264,rT:1.92,in:.46,qr:20,qt:.34,fl:"up",note:"Fully cleared after the Week 15 knee injury. Reid, 36 attempts — and a Week 15–17 slate that grades bottom-five."},
+{n:"Brock Purdy",t:"SF",p:"QB",adp:98.5,gp:15.4,rY:254,rT:1.80,in:.52,qr:14,qt:.20,note:"Evans and Deebo give him a real red-zone menu. The @LAC / @KC / PHI close is the hardest three-week stretch any quarterback faces."},
+{n:"Jaxson Dart",t:"NYG",p:"QB",adp:101.1,gp:15.4,rY:228,rT:1.52,in:.60,qr:34,qt:.38,tag:"Breakout",note:"Nagy's proxied scheme with genuine designed-run volume, and Nabers back. Week 17 at Dallas is the best single quarterback matchup on the board."},
+{n:"Bo Nix",t:"DEN",p:"QB",adp:106.8,gp:16.0,rY:238,rT:1.60,in:.48,qr:22,qt:.30,note:"The No. 1 offensive line in football and its league-low 27.7% pressure rate. Waddle's arrival is a real weapons upgrade; December is unkind."},
+{n:"Matthew Stafford",t:"LAR",p:"QB",adp:105.9,gp:15.4,rY:266,rT:1.96,in:.56,qr:6,qt:.08,note:"Nacua and Adams behind the 3rd-ranked line at 27.4% pressure. Zero rushing floor and a poor playoff draw."},
+{n:"Jared Goff",t:"DET",p:"QB",adp:109.6,gp:16.2,rY:262,rT:1.98,in:.50,qr:6,qt:.06,note:"27-point offense, but Petzing's arrival is a genuine unknown and Week 15 at Minnesota's league-best defense opens the playoffs badly."},
+{n:"Kyler Murray",t:"MIN",p:"QB",adp:112.1,gp:15.4,rY:234,rT:1.62,in:.54,qr:32,qt:.32,tag:"New team",note:"O'Connell and Jefferson is the best supporting cast Murray has had. Minnesota's 38.4% pressure rate and a hard December are the offsets."},
+{n:"Jordan Love",t:"GB",p:"QB",adp:113.0,gp:15.6,rY:250,rT:1.86,in:.56,qr:16,qt:.20,note:"Five-deep target room behind the 27th-ranked line. Weeks 15–16 are the good part."},
+{n:"Baker Mayfield",t:"TB",p:"QB",adp:118.3,gp:15.8,rY:254,rT:1.88,in:.56,qr:18,qt:.26,note:"35 attempts behind the 6th-ranked line, with a favorable December."},
+{n:"C.J. Stroud",t:"HOU",p:"QB",adp:144.6,gp:15.4,rY:248,rT:1.74,in:.48,qr:16,qt:.20,note:"The 32nd-ranked offensive line is the whole story, and the Week 15–17 slate is one of the worst in football."},
+{n:"Tyler Shough",t:"NO",p:"QB",adp:123.3,gp:15.4,rY:236,rT:1.58,in:.62,qr:18,qt:.22,note:"Kellen Moore's system, Olave and Tyson, and a 19.5-point projection."},
+{n:"Sam Darnold",t:"SEA",p:"QB",adp:142.3,gp:15.6,rY:242,rT:1.70,in:.54,qr:14,qt:.20,note:"JSN is a genuine WR1. The @PHI / LAR / @CAR close is rough."},
+{n:"Daniel Jones",t:"IND",p:"QB",adp:147.3,gp:15.2,rY:230,rT:1.52,in:.52,qr:24,qt:.26,fl:"up",note:"Back from the Achilles. Indy throws it only 31 times but Weeks 15–16 against Tennessee and Cincinnati are two of the softest defenses in the league."},
+{n:"Cam Ward",t:"TEN",p:"QB",adp:140.7,gp:15.6,rY:238,rT:1.56,in:.62,qr:22,qt:.24,note:"Second year behind the 30th-ranked line, but Weeks 15 and 17 are both plus."},
+{n:"Bryce Young",t:"CAR",p:"QB",adp:160.5,gp:15.4,rY:230,rT:1.54,in:.52,qr:20,qt:.22,note:"Carolina's line jumped to 8th and McMillan is a real alpha. Week 15 vs Cincinnati is the shootout."},
+{n:"Geno Smith",t:"NYJ",p:"QB",adp:185.9,gp:15.4,rY:244,rT:1.60,in:.58,qr:12,qt:.16,tag:"New team",note:"Garrett Wilson is a top-10 target, but a 39.9% pressure rate and Week 17 vs Minnesota cap it."},
+{n:"Aaron Rodgers",t:"PIT",p:"QB",adp:177.0,gp:14.8,rY:236,rT:1.66,in:.48,qr:6,qt:.10,note:"The league's lowest pressure rate (22.6%) is exactly what a statue quarterback needs at this stage."},
+{n:"Malik Willis",t:"MIA",p:"QB",adp:134.7,gp:15.0,rY:216,rT:1.42,in:.52,qr:36,qt:.36,note:"Rushing floor in Slowik's scheme. Miami's line is 30th and the room is thin."},
+{n:"Fernando Mendoza",t:"LV",p:"QB",adp:181.4,gp:9.0,rY:224,rT:1.44,in:.62,qr:26,qt:.28,tag:"Rookie",note:"Cousins named the starter to open camp. A mid-season handoff is the bet, and Kubiak's scheme would help."},
+{n:"Jacoby Brissett",t:"ARI",p:"QB",adp:191.4,gp:14.0,rY:230,rT:1.50,in:.52,qr:12,qt:.16,note:"Bridge arm in a rebuilt Arizona offense playing indoors all three playoff weeks."},
+
+/* ---------------- TIGHT ENDS ---------------- */
+{n:"Brock Bowers",t:"LV",p:"TE",adp:20.3,gp:16.2,rr:.88,tg:.25,rz:.28,sp:95,wd:52,note:"Route participation is effectively a wide receiver's. Las Vegas' target room is thin enough that the two-high draw barely matters — he simply gets everything, and Week 17 indoors vs Arizona closes well."},
+{n:"Trey McBride",t:"ARI",p:"TE",adp:28.9,gp:16.0,rr:.86,tg:.24,rz:.26,sp:92,wd:64,note:"Harrison forces enough split-safety looks to keep the middle open, which is precisely the mechanism that feeds a seam tight end. All three playoff games are indoors."},
+{n:"Colston Loveland",t:"CHI",p:"TE",adp:46.2,gp:15.8,rr:.80,tg:.20,rz:.24,sp:88,wd:86,tag:"Breakout",note:"Best two-high beneficiary on the board: Burden and Odunze on the outside pull safeties wide, and Ben Johnson's tight ends historically eat the vacated middle. Week 17 vs Detroit is a shootout."},
+{n:"Tyler Warren",t:"IND",p:"TE",adp:63.8,gp:15.9,rr:.82,tg:.22,rz:.26,sp:87,wd:58,note:"Steichen uses him everywhere. Indy's 31 attempts cap the volume, but Weeks 15–16 vs Tennessee and Cincinnati are two of the best tight-end matchups in the league."},
+{n:"Tucker Kraft",t:"GB",p:"TE",adp:80.4,gp:14.6,rr:.78,tg:.20,rz:.26,sp:89,wd:82,fl:"q",tag:"ACL return",note:"Off PUP and practicing with a shot at Week 1. Green Bay's five-receiver committee is the ideal two-high generator, and Kraft is the one who works the middle."},
+{n:"Sam LaPorta",t:"DET",p:"TE",adp:91.8,gp:15.8,rr:.80,tg:.18,rz:.24,sp:86,wd:88,tag:"Value",note:"St. Brown and Williams draw as much split-safety attention as any duo in football, and that is the exact condition that opens the seam. In a 27-point offense at TE8 pricing, this is the model's biggest tight-end disagreement with ADP."},
+{n:"George Kittle",t:"SF",p:"TE",adp:113.7,gp:12.4,rr:.76,tg:.20,rz:.26,sp:93,wd:74,fl:"out",note:"On PUP with the Achilles — at least four weeks into the season if he stays there. Elite when playing; the games-played projection is what kills the ranking."},
+{n:"Travis Kelce",t:"KC",p:"TE",adp:121.0,gp:15.4,rr:.82,tg:.20,rz:.24,sp:84,wd:62,note:"Reid still targets him in the red zone, but the Chiefs' December is bottom-five and the separation is going."},
+{n:"Mark Andrews",t:"BAL",p:"TE",adp:125.5,gp:15.2,rr:.70,tg:.18,rz:.30,sp:82,wd:56,note:"30% red-zone target share is the highest of any tight end. Baltimore's 31 attempts and Lamar's own goal-line work are the offsets."},
+{n:"Harold Fannin Jr.",t:"CLE",p:"TE",adp:102.7,gp:15.6,rr:.80,tg:.22,rz:.24,sp:85,wd:48,note:"Real target share on a 46.5%-pressure offense — the checkdown volume is genuine, the efficiency will not be."},
+{n:"Kyle Pitts",t:"ATL",p:"TE",adp:104.0,gp:15.4,rr:.76,tg:.17,rz:.22,sp:83,wd:60,note:"Tua's arrival is the best quarterback situation of his career. London still commands the room."},
+{n:"Dalton Kincaid",t:"BUF",p:"TE",adp:126.5,gp:15.4,rr:.74,tg:.17,rz:.24,sp:84,wd:70,note:"Buffalo's spread-it-around offense is the cap, but it is the highest-scoring projected offense in football."},
+{n:"Isaiah Likely",t:"NYG",p:"TE",adp:128.4,gp:15.4,rr:.74,tg:.18,rz:.24,sp:85,wd:66,tag:"New team",note:"Finally out of Andrews' shadow. Nabers draws the coverage; Week 17 at Dallas is the payoff game."},
+{n:"Jake Ferguson",t:"DAL",p:"TE",adp:131.3,gp:15.6,rr:.80,tg:.18,rz:.22,sp:82,wd:84,note:"Lamb and Pickens are a textbook two-high generator, and Dallas plays indoors twice in the playoff window against soft defenses."},
+{n:"Dallas Goedert",t:"PHI",p:"TE",adp:134.5,gp:14.8,rr:.72,tg:.17,rz:.24,sp:83,wd:72,note:"31 attempts a game in a run-first offense with the hardest December slate in the league."},
+{n:"Chig Okonkwo",t:"WAS",p:"TE",adp:140.2,gp:15.4,rr:.74,tg:.18,rz:.20,sp:84,wd:62,tag:"New team",note:"Daniels' scramble drill creates tight-end throws. Washington's playoff schedule is the third-hardest."},
+{n:"T.J. Hockenson",t:"MIN",p:"TE",adp:170.6,gp:15.2,rr:.78,tg:.18,rz:.22,sp:83,wd:80,tag:"Value",note:"Jefferson and Addison force two-high constantly, and O'Connell's tight ends work the middle. Week 16 vs Washington is a smash spot at a bench price."},
+{n:"Oronde Gadsden II",t:"LAC",p:"TE",adp:150.1,gp:15.4,rr:.72,tg:.17,rz:.20,sp:82,wd:68,note:"McDaniel's tight ends see real volume; Njoku's arrival splits it."},
+{n:"Hunter Henry",t:"NE",p:"TE",adp:152.3,gp:15.4,rr:.72,tg:.15,rz:.24,sp:78,wd:74,note:"McDaniels red-zone staple, now third in line behind Brown and Doubs."},
+{n:"Brenton Strange",t:"JAX",p:"TE",adp:150.6,gp:15.4,rr:.74,tg:.17,rz:.22,sp:80,wd:64,note:"Attached to the best Week 16–17 matchup pair in the league."},
+{n:"Juwan Johnson",t:"NO",p:"TE",adp:156.9,gp:15.2,rr:.74,tg:.18,rz:.24,sp:80,wd:58,note:"Kellen Moore targets tight ends; the offense scores 19.5 a game."},
+{n:"Dalton Schultz",t:"HOU",p:"TE",adp:168.5,gp:15.2,rr:.76,tg:.16,rz:.22,sp:78,wd:66,note:"Checkdown volume behind the 32nd-ranked line — the mechanism works, the schedule does not."},
+{n:"Kenyon Sadiq",t:"NYJ",p:"TE",adp:161.1,gp:15.2,rr:.68,tg:.15,rz:.20,sp:80,wd:60,tag:"Rookie",note:"Rookie seam threat in Reich's proxied scheme."},
+{n:"AJ Barner",t:"SEA",p:"TE",adp:174.9,gp:15.2,rr:.70,tg:.14,rz:.22,sp:76,wd:70,note:"Red-zone role with JSN pulling the coverage."},
+{n:"Cade Otton",t:"TB",p:"TE",adp:188.9,gp:15.2,rr:.74,tg:.15,rz:.20,sp:76,wd:72,note:"Tampa's December schedule is the case."},
+{n:"Pat Freiermuth",t:"PIT",p:"TE",adp:194.2,gp:15.2,rr:.72,tg:.16,rz:.22,sp:78,wd:66,note:"League's lowest pressure rate means clean, on-schedule throws."},
+{n:"Terrance Ferguson",t:"LAR",p:"TE",adp:182.7,gp:15.2,rr:.66,tg:.13,rz:.18,sp:78,wd:70,tag:"Rookie",note:"McVay tight end behind a top-three line."},
+{n:"Gunnar Helm",t:"TEN",p:"TE",adp:181.3,gp:15.2,rr:.70,tg:.16,rz:.20,sp:76,wd:58,note:"Two plus playoff matchups on a bad offense."},
+{n:"Greg Dulcich",t:"MIA",p:"TE",adp:178.6,gp:15.0,rr:.66,tg:.14,rz:.18,sp:76,wd:62,note:"Slowik's scheme, 30th-ranked line."}
+];
+
+/* ================================================================
+   3. CAMP WIRE — sourced news, each tagged with its model effect
+   ================================================================ */
+const NEWS = [
+{d:"Aug 1",h:"Deebo Samuel returns to San Francisco on a one-year, $7M deal",b:"Reunites with Shanahan after one season in Washington (72-727-5). Fills the hole left by Ricky Pearsall's season-ending surgery and restores the manufactured-touch package.",i:"up",who:["Deebo Samuel"],also:"Trims De'Zhaun Stribling's projected route share."},
+{d:"Jul 30",h:"49ers rule Ricky Pearsall out for the 2026 season",b:"PCL surgery ends his year before it starts. San Francisco's target tree collapses onto Mike Evans, Deebo and Kittle — who is himself on PUP.",i:"down",who:[],also:"Directly triggered the Deebo signing."},
+{d:"Aug 2",h:"Mike Evans sidelined with a quad strain",b:"Missed camp time in his first summer with the 49ers. Nothing structural reported, but he carries the highest red-zone target share on the board and San Francisco has the hardest Week 15–17 schedule in football.",i:"down",who:["Mike Evans"]},
+{d:"Aug 1",h:"George Kittle opens camp on PUP with the Achilles",b:"If he stays on the list into the regular season he misses at least four games. The model already discounts him to 12.4 projected games.",i:"down",who:["George Kittle"]},
+{d:"Jul 29",h:"Malik Nabers practices for the first time since the ACL tear",b:"On track for Week 1. He carries the highest projected target share of any receiver in the dataset, and the Giants close Week 17 at Dallas — the league's most generous defense.",i:"up",who:["Malik Nabers"]},
+{d:"Jul 31",h:"Tucker Kraft off PUP, has a shot at Week 1",b:"Returned to practice for the first time since the midseason ACL tear. Green Bay's five-deep receiver room is the ideal two-high generator for a seam tight end.",i:"up",who:["Tucker Kraft"]},
+{d:"Aug 2",h:"Alec Pierce expected off PUP within the week",b:"Ankle surgery recovery ran behind schedule but Indianapolis still expects him for Week 1. Highest aDOT in football at 16.2.",i:"up",who:["Alec Pierce"]},
+{d:"Jul 28",h:"Patrick Mahomes fully cleared for training camp",b:"No restrictions after the Week 15 knee injury. The Chiefs' problem is the calendar, not the quarterback — their Week 15–17 slate grades bottom-five.",i:"up",who:["Patrick Mahomes"]},
+{d:"Aug 1",h:"Xavier Worthy managing a shoulder issue",b:"Limited in camp. Reid manufactures touches for him regardless, but it compounds an already-hard December.",i:"down",who:["Xavier Worthy"]},
+{d:"Jul 30",h:"Travis Hunter cleared, but Jacksonville is playing him at corner",b:"Fully recovered from the torn LCL. The Jaguars have him primarily on defense with a receiver rotation — route volume is the entire fantasy question, and it is unresolved.",i:"down",who:["Travis Hunter"]},
+{d:"Jul 27",h:"Zach Charbonnet opens camp on PUP with a knee",b:"Leaves Jadarian Price with a clear runway in Seattle's Shanahan-tree scheme.",i:"down",who:["Zach Charbonnet"],also:"Raises Jadarian Price."},
+{d:"Aug 2",h:"Tank Dell still limited by the knee",b:"Houston's WR room is unsettled behind Nico Collins, which is part of why Jayden Higgins camp buzz is loud.",i:"down",who:["Tank Dell"]},
+{d:"Jul 26",h:"Kirk Cousins named the Raiders' Week 1 starter",b:"Rookie Fernando Mendoza is being evaluated but will open behind him. A midseason handoff into Kubiak's scheme is the live scenario.",i:"down",who:["Fernando Mendoza"]},
+{d:"Jul 25",h:"Cleveland's quarterback job remains open",b:"Deshaun Watson and Shedeur Sanders are both getting extended looks. Combined with the worst run-blocking line in football (0.56 YBCo) and a 46.5% pressure rate, every Browns skill player carries a heavy environment discount.",i:"down",who:["Quinshon Judkins","KC Concepcion","Harold Fannin Jr.","Jerry Jeudy"]},
+{d:"Jul 24",h:"Chris Rodriguez Jr. (foot) limited in Jacksonville",b:"Clears goal-line work for Bhayshul Tuten, who already owns the best back-to-back playoff draw at the position.",i:"up",who:["Bhayshul Tuten"]},
+{d:"Aug 1",h:"De'Zhaun Stribling and Christian Kirk both nursing soft-tissue injuries",b:"San Francisco's receiver depth thinned out fast, which is the other reason Deebo got $7M.",i:"down",who:["De'Zhaun Stribling"]},
+{d:"Jul 23",h:"Tyreek Hill remains unsigned, reports no power in the left leg",b:"Released by Miami in February after the Week 4 knee dislocation and multiple ligament tears. Treat the ADP as noise until he signs.",i:"down",who:["Tyreek Hill"]},
+{d:"Jul 22",h:"Stefon Diggs still a free agent",b:"No team means no line, no scheme and no schedule. The model returns no projection for him.",i:"down",who:["Stefon Diggs"]},
+{d:"Jul 20",h:"Daniel Jones returns from the Achilles tear in Indianapolis",b:"Indy throws it only 31 times a game, but Weeks 15 and 16 against Tennessee and Cincinnati are two of the seven most generous defenses in football.",i:"up",who:["Daniel Jones"]},
+{d:"Jul 18",h:"Blockbuster offseason reshuffles the receiver map",b:"A.J. Brown to New England, D.J. Moore to Buffalo, Jaylen Waddle to Denver, Michael Pittman to Pittsburgh on a three-year, $59M extension, Mike Evans to San Francisco. Twenty-one teams also changed offensive coordinators.",i:"up",who:["A.J. Brown","D.J. Moore","Jaylen Waddle","Michael Pittman Jr."]},
+{d:"Jul 17",h:"Nic Scourton (CAR) and Bryan Bresee (NO) both lost for the season",b:"Two defensive front injuries that soften the Panthers and Saints. Both already sit in the lower half of the SAFPA defensive ratings.",i:"up",who:[]},
+{d:"Jul 16",h:"Brian Branch (DET) unlikely back before December",b:"Achilles rehab has him headed for PUP. Detroit's secondary is thinner, which raises the shootout probability in their Week 17 game at Chicago.",i:"up",who:["Caleb Williams","Rome Odunze","Luther Burden III"]}
+];
+
+/* ================================================================
+   4. MODEL
+   ================================================================ */
+const S = {
+  ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, pw:15,
+  wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1
+};
+const DEF_S = Object.assign({}, S);
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const teamOf=p=>p.tf||p.t;
+
+/* Opponent list for the selected playoff window. */
+function pOpps(tm){
+  const t=T[tm]; if(!t) return [];
+  const base = t.p.slice();
+  if(S.pw===14) return [W14[tm]].concat(base);
+  if(S.pw===16) return base.slice(1);
+  return base;
+}
+const stripAt = o => (o||"").replace("@","");
+
+/* Playoff matchup score: mean opponent SAFPA, nudged for December weather. */
+function playoffScore(tm){
+  const opps = pOpps(tm); if(!opps.length) return {z:0,mean:0,games:[]};
+  let sum=0; const games=[];
+  opps.forEach(o=>{
+    const away=o.startsWith("@"), on=stripAt(o), d=T[on]?T[on].def:0;
+    const venue = away?on:tm;
+    const cold = COLD.has(venue)? -1.6 : (T[venue]&&T[venue].dome? 1.4 : 0);
+    const g = d + cold;
+    sum+=g; games.push({opp:o,def:d,adj:+g.toFixed(1),cold:cold<0,dome:cold>0});
+  });
+  const mean=sum/opps.length;
+  return {z:clamp(mean/12,-1.2,1.2), mean:+mean.toFixed(1), games};
+}
+
+/* --- offensive line: composite rank + yards before contact --- */
+function olGrade(tm){
+  const t=T[tm]; if(!t) return .5;
+  const rankPart = 1 - (t.olAvg-1)/31;            // 1 = best
+  const ybcoPart = clamp((t.ybco-0.56)/(1.95-0.56),0,1);
+  return 0.55*rankPart + 0.45*ybcoPart;
+}
+/* --- pass protection: inverted pressure rate --- */
+function protGrade(tm){
+  const t=T[tm]; if(!t) return .5;
+  return clamp(1-(t.qbp-22.6)/(46.5-22.6),0,1);
+}
+/* --- scheme fit: RB zone efficiency weighted by the team's actual zone diet --- */
+function schemeYPC(pl){
+  const t=T[teamOf(pl)]; if(!t) return {ypc:4.2,fit:.5};
+  const w = t.oz+t.iz;
+  const ypc = (pl.oz*t.oz + pl.iz*t.iz)/w;
+  const neutral = (pl.oz+pl.iz)/2;
+  return {ypc, fit: clamp(.5 + (ypc-neutral)*0.55, 0, 1), delta:+(ypc-neutral).toFixed(2)};
+}
+
+/* ---------------- position projections (points per game) ---------------- */
+function projRB(pl){
+  const tm=teamOf(pl), t=T[tm]; if(!t) return null;
+  const sc=schemeYPC(pl), ol=olGrade(tm);
+  const olMult = 0.88 + 0.24*ol*S.wOL;
+  const fitMult = 1 + (sc.fit-0.5)*0.30*S.wScheme;
+  const car = pl.ru*t.ra*(0.80+0.20*S.wVol);
+  const ypc = sc.ypc*olMult*fitMult;
+  const ruYd = car*ypc;
+  const tgts = pl.tg*t.pa*(0.80+0.20*S.wVol);
+  const rec = tgts*0.755;
+  const recYd = rec*(7.4 + pl.rr*3.4);
+  const teamTD = t.ppg/6.95;
+  const ruTD = teamTD*0.44*pl.gl*(1-pl.vu*0.85)*(0.60+0.40*S.wTD);
+  const reTD = teamTD*0.56*(pl.tg*0.55)*(0.60+0.40*S.wTD);
+  const passBonus = (rec*S.ppr + recYd/10)*(S.wPass-1)*0.25;
+  const ppg = ruYd/10 + recYd/10 + rec*S.ppr + (ruTD+reTD)*6 + passBonus;
+  const spike = clamp(0.42*pl.ex + 0.24*(pl.gl*100) + 0.20*(sc.fit*100) + 0.14*(pl.ex>85?100:60), 0, 100);
+  return {ppg, spike, parts:[
+    ["Zone-fit YPC", sc.fit*100, sc.ypc.toFixed(2)+" ypc"],
+    ["Run blocking", ol*100, t.ybco.toFixed(2)+" ybco / OL "+t.olAvg],
+    ["Rush volume", clamp(pl.ru*140,0,100), car.toFixed(1)+" car/gm"],
+    ["Pass-game role", clamp(pl.rr*118,0,100), (pl.rr*100).toFixed(0)+"% routes"],
+    ["TD equity", clamp(pl.gl*145*(1-pl.vu),0,100), (ruTD+reTD).toFixed(2)+" td/gm"],
+    ["Explosive runs", pl.ex, pl.ex+" grade"],
+    ["QB vulture risk", 100-pl.vu*280, (pl.vu*100).toFixed(0)+"% siphon"]
+  ], extra:{ypc:sc.ypc, delta:sc.delta, car, tgts}};
+}
+function projWR(pl){
+  const tm=teamOf(pl), t=T[tm];
+  if(!t) return {ppg:0, spike:40, parts:[["No team — unsignable",0,"—"]], extra:{}, na:1};
+  const prot=protGrade(tm);
+  const tgts = pl.tg*t.pa*(0.80+0.20*S.wVol)*(1+(prot-0.5)*0.10);
+  const cr = clamp(0.72 - (pl.ad-8)*0.017, 0.48, 0.76);
+  const rec = tgts*cr;
+  const ypr = 5.6 + pl.ad*0.60 + (pl.dp-70)*0.022;
+  const yd = rec*ypr;
+  const teamPassTD = (t.ppg/6.95)*0.60;
+  const td = teamPassTD*pl.rz*(0.60+0.40*S.wTD)*(1+(prot-0.5)*0.12);
+  const comp = 1 - (pl.cm-60)*0.0016;
+  const ppg = (yd/10 + rec*S.ppr + td*6)*comp;
+  const spike = clamp(0.40*pl.dp + 0.24*(pl.ad*5.4) + 0.22*(pl.rz*300) + 0.14*(pl.tg*320), 0, 100);
+  return {ppg, spike, parts:[
+    ["Target share", clamp(pl.tg*310,0,100), (pl.tg*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
+    ["Red-zone share", clamp(pl.rz*290,0,100), (pl.rz*100).toFixed(0)+"%"],
+    ["Deep / big play", pl.dp, pl.ad.toFixed(1)+" aDOT"],
+    ["Alignment (slot)", clamp(pl.sl*135,0,100), (pl.sl*100).toFixed(0)+"% slot"],
+    ["Separation", pl.sp, pl.sp+" grade"],
+    ["Pocket cleanliness", prot*100, t.qbp.toFixed(1)+"% pressure"],
+    ["Target competition", 100-pl.cm, pl.cm+" (lower is better)"]
+  ], extra:{tgts, rec, yd}};
+}
+function projQB(pl){
+  const tm=teamOf(pl), t=T[tm]; if(!t) return null;
+  const prot=protGrade(tm), ol=olGrade(tm);
+  const pm = 1 + (prot-0.5)*0.16*S.wOL;
+  const py = pl.rY*pm*(0.88+0.12*S.wVol);
+  const pt = pl.rT*pm*(0.60+0.40*S.wTD);
+  const rush = pl.qr*(t.qopt?1.06:1.0);
+  const rtd = pl.qt*(t.qopt?1.08:1.0)*(0.60+0.40*S.wTD);
+  const ppg = py/25 + pt*4 - pl.in*2 + rush/10 + rtd*6;
+  const dual = clamp(pl.qr*1.55 + pl.qt*44, 0, 100);
+  const spike = clamp(0.44*dual + 0.30*clamp((pl.rT-1.3)*105,0,100) + 0.26*clamp((t.ppg-18)/11*100,0,100), 0, 100);
+  return {ppg, spike, parts:[
+    ["Rushing floor", dual, rush.toFixed(0)+" yd + "+pl.qt.toFixed(2)+" td/gm"],
+    ["Pass volume", clamp((t.pa-30)/9*100,0,100), t.pa+" att/gm"],
+    ["Pass efficiency", clamp((pl.rT-1.3)*115,0,100), pl.rT.toFixed(2)+" ptd/gm"],
+    ["Pass protection", prot*100, t.qbp.toFixed(1)+"% pressure"],
+    ["Run blocking", ol*100, "OL "+t.olAvg],
+    ["Offense scoring", clamp((t.ppg-18)/10*100,0,100), t.ppg.toFixed(1)+" ppg"],
+    ["Designed QB run", t.qopt?86:34, t.qopt?"yes":"no"]
+  ], extra:{py,pt,rush}};
+}
+function projTE(pl){
+  const tm=teamOf(pl), t=T[tm]; if(!t) return null;
+  const prot=protGrade(tm);
+  /* the two-high thesis: a strong WR room forces split safeties, vacating
+     the middle and converting into tight-end volume. */
+  const twoHigh = 1 + ((pl.wd-60)/100)*0.16;
+  const tgts = pl.tg*t.pa*twoHigh*(0.80+0.20*S.wVol);
+  const rec = tgts*0.715;
+  const yd = rec*(9.0 + (pl.sp-78)*0.12);
+  const teamPassTD = (t.ppg/6.95)*0.60;
+  const td = teamPassTD*pl.rz*(0.60+0.40*S.wTD);
+  const ppg = yd/10 + rec*(S.ppr+S.tep) + td*6;
+  const spike = clamp(0.34*(pl.rz*300) + 0.30*(pl.rr*105) + 0.20*pl.sp + 0.16*pl.wd, 0, 100);
+  return {ppg, spike, parts:[
+    ["Red-zone share", clamp(pl.rz*300,0,100), (pl.rz*100).toFixed(0)+"%"],
+    ["Route participation", clamp(pl.rr*105,0,100), (pl.rr*100).toFixed(0)+"%"],
+    ["Two-high draw (WR room)", pl.wd, pl.wd>=78?"strong split-safety pull":"limited"],
+    ["Target share", clamp(pl.tg*350,0,100), (pl.tg*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
+    ["Receiving grade", pl.sp, pl.sp+" grade"],
+    ["Pocket cleanliness", prot*100, t.qbp.toFixed(1)+"% pressure"],
+    ["Offense scoring", clamp((t.ppg-18)/10*100,0,100), t.ppg.toFixed(1)+" ppg"]
+  ], extra:{tgts, rec}};
+}
+
+/* Replacement level from the actual lineup settings. */
+function replacementRanks(){
+  const n=S.teams, flexPool=S.sFLEX*n;
+  return {
+    QB: Math.round(S.sQB*n + 2),
+    RB: Math.round(S.sRB*n + flexPool*0.46 + 4),
+    WR: Math.round(S.sWR*n + flexPool*0.46 + 6),
+    TE: Math.round(S.sTE*n + flexPool*0.08 + 2)
+  };
+}
+
+let ROWS=[];
+function run(){
+  const raw = P.map(pl=>{
+    const f = pl.p==="RB"?projRB:pl.p==="WR"?projWR:pl.p==="QB"?projQB:projTE;
+    const r = f(pl) || {ppg:0,spike:40,parts:[],extra:{}};
+    const inj = 1 - (1 - clamp(pl.gp/17,0,1))*S.wInj;
+    const gp = 17*clamp(inj,0,1);
+    const ps = playoffScore(teamOf(pl));
+    return Object.assign({}, pl, {
+      ppg:r.ppg, spike:r.spike, parts:r.parts, extra:r.extra, na:r.na||0,
+      season:r.ppg*gp, gpAdj:gp, ps
+    });
+  });
+
+  const rep = replacementRanks(); const base={};
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    const s = raw.filter(x=>x.p===pos).sort((a,b)=>b.season-a.season);
+    const i = clamp(rep[pos]-1, 0, s.length-1);
+    base[pos] = s[i] ? s[i].season : 0;
+  });
+
+  ROWS = raw.map(x=>{
+    const vor = x.season - base[x.p];
+    const spikeMult = 1 + S.wSpike*((x.spike-55)/100);
+    const poMult    = 1 + S.wPlayoff*x.ps.z*0.42;
+    const bbv = vor * clamp(spikeMult,0.5,1.9) * clamp(poMult,0.5,1.7);
+    return Object.assign(x,{vor, bbv, spikeMult, poMult});
+  }).sort((a,b)=>b.bbv-a.bbv);
+
+  ROWS.forEach((x,i)=>{
+    x.rank=i+1;
+    x.edge = Math.round(x.adp - x.rank);   // + = model likes them more than the room
+    x.posRank = ROWS.filter(y=>y.p===x.p && y.bbv>=x.bbv).length;
+  });
+  return ROWS;
+}
+
+/* ================================================================
+   5. RENDER
+   ================================================================ */
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let TAB="board", FPOS="ALL", Q="", SORT={k:"rank",d:1}, OPEN=null;
+
+function edgeCls(e){ return e>=12?"pos":e<=-12?"neg":"flat"; }
+function stripeColor(e){ return e>=12?"var(--edge)":e<=-12?"var(--warn)":"transparent"; }
+function bar(v,max,teal){ const w=clamp(v/max*100,0,100); return `<span class="bar${teal?" teal":""}"><i style="width:${w.toFixed(1)}%"></i></span>`; }
+
+function chips(){
+  const c=$("#statechips"); const n=ROWS.length;
+  const wk = S.pw===14?"14–17":S.pw===16?"16–17":"15–17";
+  c.innerHTML = `<span class="chip">Half PPR <b>${S.ppr}</b></span>
+  <span class="chip">${S.teams}-team &middot; <b>${S.sQB}/${S.sRB}/${S.sWR}/${S.sTE}+${S.sFLEX}</b></span>
+  <span class="chip">Playoffs <b>Wk ${wk}</b></span>
+  <span class="chip">Pool <b>${n}</b></span>
+  <span class="chip">Updated <b>Aug 3, 2026</b></span>`;
+}
+
+function filtered(){
+  let r = ROWS.filter(x=>FPOS==="ALL"||x.p===FPOS);
+  if(Q){ const q=Q.toLowerCase(); r=r.filter(x=>x.n.toLowerCase().includes(q)||x.t.toLowerCase().includes(q)); }
+  const k=SORT.k, d=SORT.d;
+  r.sort((a,b)=>{
+    let va,vb;
+    if(k==="rank"){va=a.rank;vb=b.rank;}
+    else if(k==="name"){return d*a.n.localeCompare(b.n);}
+    else if(k==="adp"){va=a.adp;vb=b.adp;}
+    else if(k==="edge"){va=-a.edge;vb=-b.edge;}
+    else if(k==="ppg"){va=-a.ppg;vb=-b.ppg;}
+    else if(k==="spike"){va=-a.spike;vb=-b.spike;}
+    else if(k==="po"){va=-a.ps.mean;vb=-b.ps.mean;}
+    else {va=a.rank;vb=b.rank;}
+    return d*(va-vb);
+  });
+  return r;
+}
+
+function drawer(x){
+  const t=T[teamOf(x)];
+  const maxPpg={RB:22,WR:19,QB:26,TE:14}[x.p];
+  const g = x.ps.games.map(g=>`<div class="wkcard">
+      <div class="k">${esc(g.opp.startsWith("@")?"AT":"VS")}</div>
+      <div class="o">${esc(stripAt(g.opp))}</div>
+      <div class="g" style="color:${g.def>4?"var(--edge)":g.def<-6?"var(--warn)":"var(--ink-3)"}">${g.def>0?"+":""}${g.def.toFixed(1)} SAFPA</div>
+      <div class="g" style="color:var(--ink-3)">${g.cold?"outdoor cold":g.dome?"indoors":"outdoor"}</div>
+    </div>`).join("");
+  const comps = x.parts.map(p=>`<div class="comprow"><span>${esc(p[0])}</span>${bar(clamp(p[1],0,100),100,p[1]>=70)}<span class="num">${esc(p[2])}</span></div>`).join("");
+  return `<div class="dwrap">
+    <div class="dhead">
+      <div style="flex:1;min-width:260px">
+        <h3>${esc(x.n)}</h3>
+        <div class="chips" style="margin:6px 0 10px">
+          <span class="chip"><b>${x.p}${x.posRank}</b> overall <b>#${x.rank}</b></span>
+          <span class="chip">ADP <b>${x.adp.toFixed(1)}</b></span>
+          <span class="chip">Edge <b style="color:${x.edge>=12?"var(--edge)":x.edge<=-12?"var(--warn)":"var(--ink)"}">${x.edge>0?"+":""}${x.edge}</b></span>
+          ${x.est?'<span class="chip">splits <b>est</b></span>':""}
+          ${x.tag?`<span class="chip"><b>${esc(x.tag)}</b></span>`:""}
+        </div>
+        <p class="dnote">${esc(x.note||"")}</p>
+      </div>
+    </div>
+    <div class="dgrid">
+      <div class="metric"><div class="k">Projected</div><div class="n">${x.ppg.toFixed(1)}</div><div class="d">pts/gm &middot; ${x.season.toFixed(0)} season over ${x.gpAdj.toFixed(1)} gm</div></div>
+      <div class="metric"><div class="k">Value over replacement</div><div class="n">${x.vor>0?"+":""}${x.vor.toFixed(0)}</div><div class="d">vs ${x.p}${replacementRanks()[x.p]} baseline</div></div>
+      <div class="metric"><div class="k">Spike-week score</div><div class="n">${x.spike.toFixed(0)}</div><div class="d">${(x.spikeMult).toFixed(2)}× best-ball multiplier</div></div>
+      <div class="metric"><div class="k">Wk ${S.pw===14?"14":S.pw===16?"16":"15"}–17 matchups</div><div class="n" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</div><div class="d">mean opponent SAFPA &middot; ${(x.poMult).toFixed(2)}× multiplier</div></div>
+      ${t?`<div class="metric"><div class="k">Line &amp; scheme</div><div class="n">${t.olAvg.toFixed(1)}</div><div class="d">composite OL rank &middot; ${t.ybco} ybco &middot; ${t.qbp}% pressure</div></div>`:""}
+      ${t?`<div class="metric"><div class="k">Playcaller</div><div class="n" style="font-size:15px">${esc(t.pc)}</div><div class="d">${t.oz}% outside zone / ${t.iz}% inside zone${t.px?" (proxied)":""}</div></div>`:""}
+      ${x.p==="RB"&&x.extra.ypc?`<div class="metric"><div class="k">Scheme-weighted YPC</div><div class="n">${x.extra.ypc.toFixed(2)}</div><div class="d">${x.oz} out / ${x.iz} in &middot; ${x.extra.delta>0?"+":""}${x.extra.delta} vs neutral split</div></div>`:""}
+      ${x.hc?`<div class="metric"><div class="k">Handcuff to</div><div class="n" style="font-size:15px">${esc(x.hc)}</div><div class="d">contingent-value asset</div></div>`:""}
+    </div>
+    <div>
+      <div class="group"><h3>Component grades</h3></div>
+      <div class="compbars">${comps}</div>
+    </div>
+    <div>
+      <div class="group"><h3>Fantasy playoff slate</h3></div>
+      <div class="wk">${g}</div>
+    </div>
+  </div>`;
+}
+
+function viewBoard(){
+  const rows=filtered();
+  const cols=[["rank","#","l"],["name","Player","l"],["ppg","Pts/Gm"],["spike","Spike"],["po","Wk15–17"],["vorb","Value"],["adp","ADP"],["edge","Edge"]];
+  const head=cols.map(c=>{
+    const active=SORT.k===c[0];
+    return `<th class="${c[2]||""}" data-sort="${c[0]}">${c[1]}${active?` <span class="dir">${SORT.d>0?"▲":"▼"}</span>`:""}</th>`;
+  }).join("");
+  const maxV=Math.max(...ROWS.map(r=>r.bbv),1);
+  let last=null, body="";
+  rows.forEach(x=>{
+    if(SORT.k==="rank"&&FPOS==="ALL"&&!Q){
+      const tier=Math.ceil(x.rank/12);
+      if(tier!==last){ last=tier; body+=`<tr class="tierband"><td colspan="9">Round ${tier} &middot; picks ${(tier-1)*12+1}–${tier*12}</td></tr>`; }
+    }
+    const fl = x.fl==="out"?'<span class="flag out">out</span>':x.fl==="q"?'<span class="flag q">camp</span>':x.fl==="up"?'<span class="flag up">cleared</span>':"";
+    body += `<tr class="row" data-n="${esc(x.n)}">
+      <td class="stripe" style="background:${stripeColor(x.edge)}"></td>
+      <td class="rk">${x.rank}</td>
+      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span> ${fl}</span></td>
+      <td class="num">${x.ppg.toFixed(1)}</td>
+      <td class="num" style="color:${x.spike>72?"var(--accent)":"var(--ink-2)"}">${x.spike.toFixed(0)}</td>
+      <td class="num" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink-2)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</td>
+      <td>${bar(x.bbv,maxV,x.edge>=12)}</td>
+      <td class="num" style="color:var(--ink-3)">${x.adp.toFixed(1)}</td>
+      <td class="val ${edgeCls(x.edge)}">${x.edge>0?"+":""}${x.edge}</td>
+    </tr>`;
+    if(OPEN===x.n) body += `<tr class="drawer"><td colspan="9">${drawer(x)}</td></tr>`;
+  });
+  return `<div class="toolbar">
+      <input type="search" id="q" placeholder="Search player or team…" value="${esc(Q)}" />
+      ${["ALL","QB","RB","WR","TE"].map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
+      <span class="spacer"></span>
+      <button class="pill" id="valonly" aria-pressed="false">Values only</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th class="stripe"></th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="legend">
+      <span><i style="background:var(--edge)"></i>Model ranks 12+ picks ahead of ADP</span>
+      <span><i style="background:var(--warn)"></i>Model ranks 12+ picks behind ADP</span>
+      <span><i style="background:var(--accent)"></i>Spike-week score above 72</span>
+      <span>Click any row for the full projection math</span>
+    </div>`;
+}
+
+function viewPlayoff(){
+  const teams=Object.keys(T).map(tm=>{
+    const ps=playoffScore(tm);
+    const players=ROWS.filter(r=>teamOf(r)===tm&&r.rank<=180).slice(0,4);
+    return {tm, ps, players};
+  }).sort((a,b)=>b.ps.mean-a.ps.mean);
+  const cards=teams.map(t=>`<div class="card">
+    <h4>${t.tm} <span style="float:right;color:${t.ps.mean>3?"var(--edge)":t.ps.mean<-4?"var(--warn)":"var(--ink-3)"};font-family:var(--font-mono);font-size:15px">${t.ps.mean>0?"+":""}${t.ps.mean}</span></h4>
+    <div class="meta">${T[t.tm].pc} &middot; ${T[t.tm].ppg} proj ppg &middot; OL ${T[t.tm].olAvg}</div>
+    <div class="wk" style="margin-bottom:10px">${t.ps.games.map(g=>`<div class="wkcard"><div class="k">${g.opp.startsWith("@")?"AT":"VS"}</div><div class="o">${stripAt(g.opp)}</div><div class="g" style="color:${g.def>4?"var(--edge)":g.def<-6?"var(--warn)":"var(--ink-3)"}">${g.def>0?"+":""}${g.def}</div></div>`).join("")}</div>
+    ${t.players.map(p=>`<div class="kv"><span>${esc(p.n)} <span class="pos ${p.p}">${p.p}</span></span><span>#${p.rank} &middot; ADP ${p.adp.toFixed(0)}</span></div>`).join("")}
+  </div>`).join("");
+  return `<p class="note" style="margin-bottom:16px">Teams ranked by mean opponent SAFPA across the selected playoff window, adjusted for December venue. <b>SAFPA</b> is schedule-adjusted fantasy points allowed — a positive number means that defense gives up more than average, so a positive team score means an easy closing slate. Dallas (+22.5), Washington (+14.2) and Cincinnati (+13.0) are the defenses you want to finish against; Minnesota (−20.5), Houston (−14.1) and Philadelphia (−13.8) are the ones you don't.</p>
+  <div class="cards">${cards}</div>`;
+}
+
+function viewStacks(){
+  const out=[];
+  Object.keys(T).forEach(tm=>{
+    const qb=ROWS.filter(r=>r.p==="QB"&&teamOf(r)===tm).sort((a,b)=>a.rank-b.rank)[0];
+    if(!qb) return;
+    const pass=ROWS.filter(r=>(r.p==="WR"||r.p==="TE")&&teamOf(r)===tm).sort((a,b)=>a.rank-b.rank);
+    if(!pass.length) return;
+    const w1=pass[0], w2=pass[1];
+    const ps=playoffScore(tm);
+    // correlation: shared touchdown pool + concentration of the primary target
+    const corr = clamp((w1.tg||0)*250 + (w1.rz||0)*90, 0, 100);
+    const score = (qb.bbv*0.42 + w1.bbv*0.42 + (w2?w2.bbv*0.16:0))/10 * (1+ps.z*0.30) * (0.75+corr/200);
+    const cost = qb.adp + w1.adp + (w2?w2.adp:0);
+    out.push({tm,qb,w1,w2,ps,corr,score,cost});
+  });
+  out.sort((a,b)=>b.score-a.score);
+  return `<p class="note" style="margin-bottom:16px">A stack doubles down on one offense beating its projection. This board scores each team's quarterback plus their most concentrated pass-catcher, weighted by how much of the target and red-zone pool that receiver actually owns (the correlation grade) and by the team's Week 15–17 slate. <b>Cost</b> is the summed ADP — cheap stacks with a strong December are where tournament leverage lives.</p>
+  <div class="cards">${out.slice(0,18).map(s=>`<div class="card">
+    <h4>${s.tm} <span style="float:right;font-family:var(--font-mono);font-size:14px;color:var(--accent)">${s.score.toFixed(1)}</span></h4>
+    <div class="meta">correlation ${s.corr.toFixed(0)} &middot; Wk15–17 ${s.ps.mean>0?"+":""}${s.ps.mean} &middot; cost ${s.cost.toFixed(0)}</div>
+    <div class="kv"><span>${esc(s.qb.n)} <span class="pos QB">QB${s.qb.posRank}</span></span><span>ADP ${s.qb.adp.toFixed(0)} &middot; #${s.qb.rank}</span></div>
+    <div class="kv"><span>${esc(s.w1.n)} <span class="pos ${s.w1.p}">${s.w1.p}${s.w1.posRank}</span></span><span>ADP ${s.w1.adp.toFixed(0)} &middot; #${s.w1.rank}</span></div>
+    ${s.w2?`<div class="kv"><span>${esc(s.w2.n)} <span class="pos ${s.w2.p}">${s.w2.p}${s.w2.posRank}</span></span><span>ADP ${s.w2.adp.toFixed(0)} &middot; #${s.w2.rank}</span></div>`:""}
+  </div>`).join("")}</div>`;
+}
+
+function viewCuffs(){
+  const cuffs=ROWS.filter(r=>r.hc).map(r=>{
+    const starter=ROWS.find(s=>s.n===r.hc);
+    if(!starter) return null;
+    /* Leverage is about the ceiling, not the gap: what the backup would score
+       carrying the starter's workload, weighted by how likely that happens and
+       how little you pay to find out. */
+    const transfer = starter.ppg - r.ppg;
+    const contingent = r.ppg + transfer*0.72;
+    const risk = clamp((17-starter.gpAdj)/3.5, 0, 1);
+    const cheap = clamp((160-r.adp)/8, 0, 12);
+    const lev = clamp(contingent*4.2 + risk*20 + r.ps.z*8 + cheap - 22, 0, 100);
+    return {r, starter, transfer, contingent, lev};
+  }).filter(Boolean).sort((a,b)=>b.lev-a.lev);
+  const rows=cuffs.map(c=>`<tr class="row" data-n="${esc(c.r.n)}">
+    <td class="stripe" style="background:${c.lev>62?"var(--edge)":"transparent"}"></td>
+    <td class="l"><span class="pname"><b>${esc(c.r.n)}</b> <span class="pos RB">RB${c.r.posRank}</span> <span class="team">${esc(c.r.t)}</span></span></td>
+    <td class="l" style="color:var(--ink-2)">${esc(c.starter.n)}</td>
+    <td class="num">${c.r.adp.toFixed(0)}</td>
+    <td class="num">${c.r.ppg.toFixed(1)}</td>
+    <td class="num" style="color:var(--accent)">${c.contingent.toFixed(1)}</td>
+    <td>${bar(c.lev,100,c.lev>62)}</td>
+    <td class="num">${c.lev.toFixed(0)}</td>
+  </tr>${OPEN===c.r.n?`<tr class="drawer"><td colspan="8">${drawer(c.r)}</td></tr>`:""}`).join("");
+  return `<p class="note" style="margin-bottom:16px">Leverage scores the <b>ceiling</b>, not the gap: what this back would actually score carrying the starter's full workload, weighted by how likely that happens (the starter's own durability projection) and by how little you pay to find out. A backup who would be mediocre even as the starter scores low no matter how big the drop-off is. In an 18-man best-ball roster, a high-leverage cuff after pick 150 is a free lottery ticket on a league-winner.</p>
+  <div class="tablewrap"><table><thead><tr><th class="stripe"></th><th class="l">Backup</th><th class="l">Behind</th><th>ADP</th><th>Now</th><th>If starter out</th><th>Leverage</th><th>Score</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function viewTeams(){
+  const ts=Object.keys(T).sort((a,b)=>T[a].olAvg-T[b].olAvg);
+  const rows=ts.map(tm=>{
+    const t=T[tm], ps=playoffScore(tm);
+    return `<tr class="row">
+      <td class="stripe"></td>
+      <td class="l"><b>${tm}</b></td>
+      <td class="num">${t.olAvg.toFixed(1)}</td>
+      <td class="num">${t.clay}</td>
+      <td class="num">${t.ybco.toFixed(2)}</td>
+      <td class="num" style="color:${t.qbp<30?"var(--edge)":t.qbp>38?"var(--warn)":"var(--ink-2)"}">${t.qbp.toFixed(1)}%</td>
+      <td class="num">${t.oz.toFixed(1)}%</td>
+      <td class="num">${t.iz.toFixed(1)}%</td>
+      <td class="l" style="color:var(--ink-2)">${esc(t.pc)}${t.px?' <span class="flag q">proxy</span>':""}</td>
+      <td class="num">${t.ppg.toFixed(1)}</td>
+      <td class="num" style="color:${t.def>6?"var(--edge)":t.def<-8?"var(--warn)":"var(--ink-2)"}">${t.def>0?"+":""}${t.def}</td>
+      <td class="num" style="color:${ps.mean>3?"var(--edge)":ps.mean<-4?"var(--warn)":"var(--ink-2)"}">${ps.mean>0?"+":""}${ps.mean}</td>
+    </tr>`;
+  }).join("");
+  return `<p class="note" style="margin-bottom:16px">Every team-level input the model runs on, sorted by composite offensive-line rank. <b>YBCo</b> is yards before contact per rush attempt; <b>Press%</b> is pressure rate allowed; <b>OZ/IZ</b> are outside- and inside-zone play rates. A <span class="flag q">proxy</span> tag means the zone rates were carried over from that playcaller's previous stop because he is new to the team. <b>Def</b> is that team's own defensive SAFPA — how generous they are to opposing fantasy players.</p>
+  <div class="tablewrap"><table><thead><tr><th class="stripe"></th><th class="l">Team</th><th>OL avg</th><th>Clay</th><th>YBCo</th><th>Press%</th><th>OZ%</th><th>IZ%</th><th class="l">Playcaller</th><th>Proj PPG</th><th>Def</th><th>Wk15–17</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function viewNews(){
+  const items=NEWS.map(n=>{
+    const links=(n.who||[]).map(w=>{
+      const p=ROWS.find(r=>r.n===w);
+      return p?`<span class="chip">${esc(w)} &middot; <b>#${p.rank}</b> vs ADP ${p.adp.toFixed(0)}</span>`:"";
+    }).join(" ");
+    return `<div class="newsitem">
+      <div class="date">${esc(n.d)}</div>
+      <div>
+        <h5>${esc(n.h)}</h5>
+        <p>${esc(n.b)}</p>
+        ${n.also?`<p style="color:var(--ink-3);font-size:11.5px">${esc(n.also)}</p>`:""}
+        <div class="chips"><span class="impact ${n.i}">${n.i==="up"?"raises projection":"lowers projection"}</span> ${links}</div>
+      </div>
+    </div>`;
+  }).join("");
+  return `<p class="note" style="margin-bottom:12px">Camp and transaction news through August 3, 2026, with the model rank each item moves. Injury flags feed straight into the games-played projection — turn the <b>Injury / camp discount</b> slider down to see the board with health risk removed.</p>${items}`;
+}
+
+function viewMethod(){
+  return `<div style="max-width:78ch;display:grid;gap:20px">
+  <div>
+    <div class="group"><h3>What this is</h3></div>
+    <p class="note">A projection model for Underdog Best Ball Mania VII — half PPR, 18-man rosters, 1QB/2RB/3WR/1TE/1FLEX. It projects points per game from position-specific components, converts that to value over replacement using your actual lineup settings, then applies two best-ball-specific multipliers: one for spike-week variance (you only bank a player's best weeks) and one for the Week 15–17 slate (that's where the money is). Everything recomputes live when you move a slider.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Running backs</h3></div>
+    <p class="note">The core calculation is <b>scheme-weighted YPC</b>: each back's outside- and inside-zone efficiency weighted by how often his offense actually calls each concept. Bucky Irving averaging 2.2 on outside zone in a scheme that calls it 50.5% of the time is a real, quantifiable problem — and a neutral YPC average hides it completely. That figure is then scaled by run blocking (composite OL rank plus yards before contact), volume, pass-game role, touchdown equity net of QB vulture rate, and explosive-run grade.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Wide receivers</h3></div>
+    <p class="note">Targets come from share times team pass volume, adjusted for pass protection — a receiver behind a 42.5% pressure rate loses attempts. Catch rate and yards per reception are both derived from aDOT, so deep threats correctly get fewer, bigger catches. Red-zone share drives touchdowns. Slot rate matters twice: it raises the floor and it lowers exposure to shadow corners, which is why a 64% slot receiver and a 13% slot receiver with identical target shares do not project the same.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Quarterbacks</h3></div>
+    <p class="note">Rushing is weighted heavily because rushing floor is the position's only real edge — a designed-run offense adds to both yards and touchdowns. Passing volume and efficiency scale with pass protection and offensive line quality. Team scoring projection sets the touchdown ceiling.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Tight ends</h3></div>
+    <p class="note">Red-zone share and route participation are the base. On top of that sits a <b>two-high draw</b> term: a team with two genuine outside receiver threats forces split-safety coverage, which vacates the middle of the field and converts directly into tight-end volume. Detroit, Chicago, Dallas, Green Bay and Minnesota score highest on it — and their tight ends are the ones the model likes most against ADP.</p>
+  </div>
+  <div>
+    <div class="group"><h3>The playoff multiplier</h3></div>
+    <p class="note">Every Week 15–17 opponent is scored by SAFPA — schedule-adjusted fantasy points allowed. The mean across the window is normalized and adjusted for venue: cold outdoor December games get a small penalty, domes a small bonus. Widening the window to 14–17 or narrowing it to 16–17 recomputes every opponent and re-ranks the board.</p>
+  </div>
+  <div>
+    <div class="group"><h3>What's sourced, what's estimated</h3></div>
+    <p class="note">Sourced: composite and Mike Clay offensive line ranks, yards before contact, pressure rate, outside/inside zone rates by playcaller, per-back zone YPC splits, receiver slot rates, Week 15–17 opponents, and defensive SAFPA. Estimated by hand: target shares, red-zone shares, route participation, goal-line shares, aDOT, and all grades on a 0–100 scale. Any player whose zone splits were unavailable is marked <code>est</code> in their drawer — mostly rookies and backups with no meaningful sample. Playcallers new to their team carry <code>proxy</code> zone rates from their previous stop.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Known limits</h3></div>
+    <p class="note">Team points-per-game projections are hand-set, not derived from betting markets — swapping in live implied team totals would be the single highest-value upgrade. ADP is a mid-summer snapshot and drifts daily. Free agents with no team return no projection at all. And a model that says a player is 40 picks undervalued is making a claim about the market, not a promise about December.</p>
+  </div>
+  </div>`;
+}
+
+function render(){
+  chips();
+  const v=$("#view");
+  v.innerHTML = TAB==="board"?viewBoard():TAB==="playoff"?viewPlayoff():TAB==="stacks"?viewStacks():
+                TAB==="cuffs"?viewCuffs():TAB==="teams"?viewTeams():TAB==="news"?viewNews():viewMethod();
+
+  const q=$("#q");
+  if(q){
+    q.addEventListener("input",e=>{Q=e.target.value; const p=e.target.selectionStart; render(); const n=$("#q"); if(n){n.focus(); n.setSelectionRange(p,p);} });
+  }
+  v.querySelectorAll("[data-pos]").forEach(b=>b.addEventListener("click",()=>{FPOS=b.dataset.pos; render();}));
+  v.querySelectorAll("th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
+    const k=th.dataset.sort; SORT = SORT.k===k?{k,d:-SORT.d}:{k,d:1}; render();
+  }));
+  v.querySelectorAll("tr.row[data-n]").forEach(tr=>tr.addEventListener("click",()=>{
+    OPEN = OPEN===tr.dataset.n?null:tr.dataset.n; render();
+  }));
+  const vo=$("#valonly");
+  if(vo) vo.addEventListener("click",()=>{
+    const on=vo.getAttribute("aria-pressed")==="true";
+    vo.setAttribute("aria-pressed",String(!on));
+    if(!on){ ROWS.sort((a,b)=>b.edge-a.edge); SORT={k:"edge",d:1}; } else { SORT={k:"rank",d:1}; }
+    render();
+  });
+}
+
+/* ---------------- controls ---------------- */
+function bindRange(id,key,fmt){
+  const inp=document.getElementById(id), out=document.getElementById(id+"_v");
+  const sync=()=>{ S[key]=parseFloat(inp.value); out.textContent=fmt?fmt(S[key]):S[key].toFixed(2); run(); render(); };
+  inp.addEventListener("input",sync);
+  inp.value=S[key]; out.textContent=fmt?fmt(S[key]):S[key].toFixed(2);
+}
+function bindNum(id,key){
+  const inp=document.getElementById(id);
+  inp.addEventListener("change",()=>{ const v=parseInt(inp.value,10); if(!isNaN(v)){ S[key]=v; run(); render(); } });
+  inp.value=S[key];
+}
+["ppr","tep"].forEach(k=>bindRange(k,k,v=>v.toFixed(2)));
+["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>bindNum(k,k));
+["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj"].forEach(k=>bindRange(k,k));
+
+document.querySelectorAll("#pwseg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true"); S.pw=parseInt(b.dataset.pw,10); run(); render();
+}));
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#tabs button").forEach(o=>o.setAttribute("aria-selected","false"));
+  b.setAttribute("aria-selected","true"); TAB=b.dataset.tab; OPEN=null; render();
+}));
+$("#resetbtn").addEventListener("click",()=>{
+  Object.assign(S,DEF_S);
+  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj"].forEach(k=>{
+    const i=document.getElementById(k); i.value=S[k]; document.getElementById(k+"_v").textContent=S[k].toFixed(2);
+  });
+  ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>{document.getElementById(k).value=S[k];});
+  document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed",o.dataset.pw==="15"?"true":"false"));
+  run(); render();
+});
+$("#railtoggle").addEventListener("click",()=>{
+  const r=$("#rail"), open=r.classList.toggle("open");
+  $("#railtoggle").setAttribute("aria-expanded",String(open));
+});
+$("#themebtn").addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const sysDark=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = cur ? (cur==="dark"?"light":"dark") : (sysDark?"light":"dark");
+  document.documentElement.setAttribute("data-theme",next);
+});
+
+/* Keep sticky offsets locked to the real header height — it wraps when narrow. */
+(function(){
+  const h=$("header.top");
+  const sync=()=>document.documentElement.style.setProperty("--hdr", Math.round(h.getBoundingClientRect().height)+"px");
+  sync();
+  if(window.ResizeObserver) new ResizeObserver(sync).observe(h);
+  window.addEventListener("resize",sync);
+})();
+
+run(); render();
+
+/* sanity check — projections should land in plausible ranges */
+(function(){
+  const by=p=>ROWS.filter(r=>r.p===p).sort((a,b)=>b.ppg-a.ppg);
+  const ok=(p,lo,hi)=>{const t=by(p)[0]; return t && t.ppg>=lo && t.ppg<=hi ? "ok" : "CHECK";};
+  console.log("[HashMarks] pool:",ROWS.length,
+    "| RB1",by("RB")[0].n,by("RB")[0].ppg.toFixed(1),ok("RB",16,24),
+    "| WR1",by("WR")[0].n,by("WR")[0].ppg.toFixed(1),ok("WR",13,20),
+    "| QB1",by("QB")[0].n,by("QB")[0].ppg.toFixed(1),ok("QB",19,28),
+    "| TE1",by("TE")[0].n,by("TE")[0].ppg.toFixed(1),ok("TE",9,16));
+})();
+</script>
+</body>
+</html>
