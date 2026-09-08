@@ -249,6 +249,10 @@ td.rk{font-family:var(--font-mono); color:var(--ink-3); font-size:12px; width:44
 .bar{position:relative; height:5px; background:var(--line-soft); border-radius:3px; min-width:56px; overflow:hidden}
 .bar > i{position:absolute; inset:0 auto 0 0; background:var(--accent); border-radius:3px; display:block}
 .bar.teal > i{background:var(--edge)}
+.rng{position:relative; display:block; height:11px; min-width:74px; background:var(--line-soft); border-radius:2px}
+.rng > i.span{position:absolute; top:3px; height:5px; background:linear-gradient(90deg,var(--ink-3),var(--accent)); border-radius:3px; display:block}
+.rng > i.mid{position:absolute; top:0; width:2px; height:11px; background:var(--ink); border-radius:1px; display:block}
+.flag.hist{background:var(--line); color:var(--ink-3)}
 .tierband td{
   background:var(--ground); font-family:var(--font-mono); font-size:10px; letter-spacing:.16em;
   text-transform:uppercase; color:var(--ink-3); padding:6px 10px; text-align:left;
@@ -268,6 +272,16 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
 .metric .k{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
 .metric .n{font-family:var(--font-mono); font-size:17px; font-weight:600; margin:2px 0 5px; letter-spacing:-.02em}
 .metric .d{font-size:11px; color:var(--ink-3); line-height:1.4}
+.outcomes{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--s3); max-width:640px}
+.oc{border:1px solid var(--line); border-radius:var(--r); padding:9px 11px; background:var(--panel)}
+.oc.mid{border-color:var(--accent)}
+.oc .k{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.oc .n{font-family:var(--font-mono); font-size:22px; font-weight:600; margin:2px 0 4px; letter-spacing:-.02em}
+.oc .d{font-size:11px; color:var(--ink-3); line-height:1.4}
+.levbox{display:grid; gap:4px; margin-top:2px}
+.levrow{display:grid; grid-template-columns:26px 1fr 46px; gap:8px; align-items:center; font-family:var(--font-mono); font-size:10.5px}
+.levrow b{font-weight:600}
+.levrow .lv{text-align:right; color:var(--accent)}
 .compbars{display:grid; gap:7px}
 .comprow{display:grid; grid-template-columns:170px minmax(80px,1fr) 132px; gap:var(--s3); align-items:center; font-size:11.5px}
 .comprow > span:first-child{color:var(--ink-2)}
@@ -411,6 +425,51 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
     </div>
 
     <div class="group">
+      <h3>Positional Leverage</h3>
+      <div class="field">
+        <label for="gamma">Scarcity weighting <span class="v" id="gamma_v">0.45</span></label>
+        <input type="range" id="gamma" min="0" max="1.4" step="0.05" value="0.45" />
+      </div>
+      <p class="note">
+        Measures each position's gap between elite and replacement, then rewards the positions
+        where that gap is largest. At <b>0</b> the board is pure points over replacement; at
+        <b>1</b> the measured scarcity is applied in full. Quarterback discounts itself here —
+        the model does not assume it, it computes it.
+      </p>
+      <div class="rowfields">
+        <div class="field"><label for="emQB">QB <span class="v" id="emQB_v">1.00</span></label><input type="range" id="emQB" min="0.4" max="1.6" step="0.05" value="1" /></div>
+        <div class="field"><label for="emRB">RB <span class="v" id="emRB_v">1.00</span></label><input type="range" id="emRB" min="0.4" max="1.6" step="0.05" value="1" /></div>
+      </div>
+      <div class="rowfields">
+        <div class="field"><label for="emWR">WR <span class="v" id="emWR_v">1.00</span></label><input type="range" id="emWR" min="0.4" max="1.6" step="0.05" value="1" /></div>
+        <div class="field"><label for="emTE">TE <span class="v" id="emTE_v">1.00</span></label><input type="range" id="emTE" min="0.4" max="1.6" step="0.05" value="1" /></div>
+      </div>
+      <div id="levreadout" class="levbox"></div>
+    </div>
+
+    <div class="group">
+      <h3>Production History</h3>
+      <div class="field">
+        <label for="wPrior">Prior production weight <span class="v" id="wPrior_v">0.30</span></label>
+        <input type="range" id="wPrior" min="0" max="0.8" step="0.05" value="0.30" />
+      </div>
+      <div class="field">
+        <label for="priFull">Full-strength emphasis <span class="v" id="priFull_v">0.72</span></label>
+        <input type="range" id="priFull" min="0.5" max="1" step="0.02" value="0.72" />
+      </div>
+      <p class="note">
+        Players get two production modes — what they scored at full strength and what they
+        scored without a key teammate or while hurt. <b>Full-strength emphasis</b> sets how far
+        to lean toward the healthy number; games lost to an injury that has since resolved are
+        discounted automatically on top of that.
+      </p>
+      <div class="field">
+        <label for="wRange">Outcome spread <span class="v" id="wRange_v">1.00</span></label>
+        <input type="range" id="wRange" min="0.4" max="1.8" step="0.05" value="1" />
+      </div>
+    </div>
+
+    <div class="group">
       <h3>Read Me</h3>
       <p class="note">
         Team inputs — offensive line ranks, yards before contact, pressure rate, outside/inside-zone rates,
@@ -429,6 +488,7 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
       <button data-tab="cuffs" aria-selected="false">Handcuffs</button>
       <button data-tab="teams" aria-selected="false">Team Sheet</button>
       <button data-tab="news" aria-selected="false">Camp Wire</button>
+      <button data-tab="calib" aria-selected="false">Position Value</button>
       <button data-tab="method" aria-selected="false">Method</button>
     </nav>
     <div id="view"></div>
@@ -717,6 +777,192 @@ const P = [
 ];
 
 /* ================================================================
+   2b. SITUATIONAL PRIOR PRODUCTION
+   Raw season averages lie. A quarterback who put up 22.4 with his WR1 on the
+   field and 14.8 without him did not "average 19" — he has two distinct modes,
+   and which one you get in 2026 depends on who is healthy.
+
+   f/fg  points per game and games played AT FULL STRENGTH
+   d/dg  points per game and games played IN THE DIMINISHED STATE
+   hl    how much of the diminished sample was driven by an injury that is now
+         resolved (0-100). High values mean that sample should be discounted
+         rather than treated as a true talent signal.
+   ctx   what the diminished state actually was
+   mv    player changed teams, so the prior transfers only partially
+
+   These splits are hand-estimated, not scraped. They are a prior, not a
+   projection — the "Prior production weight" slider controls how much they
+   move the model, and zero turns them off entirely.
+   ================================================================ */
+const PRIOR = {
+/* QB — split on their WR1 */
+"Josh Allen":{f:26.4,fg:13,d:21.2,dg:4,hl:20,ctx:"without his top pass-catcher"},
+"Lamar Jackson":{f:25.8,fg:12,d:19.4,dg:4,hl:45,ctx:"playing through the back/knee"},
+"Jalen Hurts":{f:22.6,fg:14,d:17.1,dg:3,hl:30,ctx:"without a healthy Smith/Brown pairing"},
+"Jayden Daniels":{f:23.9,fg:11,d:16.2,dg:5,hl:65,ctx:"the elbow and knee stretch"},
+"Drake Maye":{f:22.1,fg:14,d:16.8,dg:3,hl:15,ctx:"before the line stabilized"},
+"Joe Burrow":{f:24.6,fg:10,d:16.9,dg:6,hl:70,ctx:"turf toe, and without Higgins"},
+"Caleb Williams":{f:21.4,fg:12,d:15.6,dg:5,hl:20,ctx:"without Odunze or Loveland"},
+"Dak Prescott":{f:23.2,fg:11,d:15.9,dg:5,hl:60,ctx:"the hamstring, and without Lamb"},
+"Justin Herbert":{f:21.8,fg:13,d:16.4,dg:4,hl:35,ctx:"behind a collapsing front"},
+"Trevor Lawrence":{f:20.9,fg:12,d:14.7,dg:5,hl:40,ctx:"the shoulder, and without BTJ"},
+"Patrick Mahomes":{f:23.4,fg:13,d:18.2,dg:3,hl:55,ctx:"the Week 15 knee"},
+"Brock Purdy":{f:22.7,fg:11,d:15.1,dg:5,hl:50,ctx:"without Kittle, and the elbow"},
+"Jaxson Dart":{f:20.6,fg:8,d:13.9,dg:6,hl:25,ctx:"rookie games without Nabers"},
+"Bo Nix":{f:20.8,fg:13,d:16.1,dg:4,hl:15,ctx:"without a true WR1"},
+"Matthew Stafford":{f:22.9,fg:13,d:16.4,dg:3,hl:35,ctx:"the back, and without Nacua"},
+"Jared Goff":{f:23.1,fg:14,d:17.2,dg:3,hl:10,ctx:"without St. Brown"},
+"Kyler Murray":{f:21.2,fg:12,d:15.8,dg:4,hl:40,ctx:"without Harrison",mv:1},
+"Jordan Love":{f:21.6,fg:12,d:15.4,dg:4,hl:55,ctx:"the thumb and knee"},
+"Baker Mayfield":{f:22.4,fg:14,d:16.0,dg:3,hl:20,ctx:"without Evans"},
+"C.J. Stroud":{f:20.4,fg:11,d:13.8,dg:5,hl:45,ctx:"concussion protocol, and without Collins"},
+"Sam Darnold":{f:20.1,fg:13,d:14.6,dg:4,hl:15,ctx:"without JSN"},
+"Daniel Jones":{f:19.8,fg:9,d:13.4,dg:5,hl:75,ctx:"before the Achilles"},
+"Geno Smith":{f:19.4,fg:12,d:14.1,dg:5,hl:25,ctx:"pressure-heavy weeks",mv:1},
+"Cam Ward":{f:18.6,fg:11,d:13.2,dg:6,hl:20,ctx:"rookie games behind a broken line"},
+"Bryce Young":{f:19.2,fg:11,d:13.0,dg:5,hl:20,ctx:"without a healthy McMillan"},
+
+/* RB — split on health and on backfield competition */
+"Jahmyr Gibbs":{f:21.6,fg:13,d:16.4,dg:4,hl:25,ctx:"heavy Montgomery committee weeks"},
+"Bijan Robinson":{f:20.4,fg:15,d:15.8,dg:2,hl:20,ctx:"the ankle stretch"},
+"Christian McCaffrey":{f:21.9,fg:9,d:13.2,dg:5,hl:85,ctx:"the Achilles and calf — heavily injury-driven"},
+"Jonathan Taylor":{f:19.8,fg:13,d:13.6,dg:3,hl:60,ctx:"the ankle"},
+"Ashton Jeanty":{f:17.4,fg:12,d:12.8,dg:5,hl:30,ctx:"rookie games in negative script"},
+"James Cook":{f:19.2,fg:14,d:13.9,dg:3,hl:25,ctx:"the toe"},
+"Omarion Hampton":{f:18.1,fg:11,d:12.4,dg:5,hl:45,ctx:"the ankle as a rookie"},
+"Kenneth Walker III":{f:17.6,fg:11,d:11.8,dg:5,hl:60,ctx:"calf and ankle",mv:1},
+"Chase Brown":{f:18.4,fg:13,d:12.1,dg:4,hl:20,ctx:"without Burrow"},
+"Derrick Henry":{f:19.6,fg:14,d:13.4,dg:3,hl:25,ctx:"late-season workload dip"},
+"De'Von Achane":{f:19.8,fg:12,d:12.6,dg:4,hl:50,ctx:"the knee, and without a functional QB"},
+"Saquon Barkley":{f:18.9,fg:13,d:12.7,dg:4,hl:40,ctx:"the groin, and heavy Hurts goal-line usage"},
+"Kyren Williams":{f:17.8,fg:15,d:13.1,dg:2,hl:20,ctx:"Corum committee weeks"},
+"Breece Hall":{f:16.9,fg:14,d:11.8,dg:3,hl:30,ctx:"committee weeks"},
+"Josh Jacobs":{f:16.4,fg:14,d:11.2,dg:3,hl:45,ctx:"the knee"},
+"Javonte Williams":{f:16.2,fg:13,d:11.4,dg:4,hl:25,ctx:"committee weeks",mv:0},
+"Travis Etienne Jr.":{f:16.8,fg:12,d:10.9,dg:5,hl:30,ctx:"Bigsby committee weeks",mv:1},
+"Cam Skattebo":{f:16.4,fg:10,d:11.2,dg:6,hl:55,ctx:"the ankle as a rookie"},
+"Bucky Irving":{f:16.6,fg:12,d:11.0,dg:4,hl:50,ctx:"foot and shoulder"},
+"David Montgomery":{f:15.1,fg:12,d:10.4,dg:4,hl:40,ctx:"the knee",mv:1},
+"D'Andre Swift":{f:15.4,fg:14,d:10.8,dg:3,hl:15,ctx:"Monangai committee weeks"},
+"TreVeyon Henderson":{f:15.8,fg:11,d:10.2,dg:6,hl:25,ctx:"split with Stevenson"},
+"Quinshon Judkins":{f:15.9,fg:13,d:10.6,dg:4,hl:20,ctx:"without functional QB play"},
+"Bhayshul Tuten":{f:14.8,fg:10,d:9.4,dg:6,hl:30,ctx:"rookie committee weeks"},
+"Jaylen Warren":{f:14.6,fg:13,d:10.1,dg:4,hl:25,ctx:"Dowdle committee weeks"},
+"Tony Pollard":{f:14.9,fg:14,d:10.3,dg:3,hl:30,ctx:"Spears committee weeks"},
+"RJ Harvey":{f:14.2,fg:11,d:9.6,dg:5,hl:35,ctx:"rookie committee weeks"},
+"Chuba Hubbard":{f:13.8,fg:12,d:9.2,dg:4,hl:50,ctx:"the calf"},
+"Rhamondre Stevenson":{f:13.1,fg:12,d:8.6,dg:5,hl:35,ctx:"ball-security benchings"},
+"Jordan Mason":{f:13.9,fg:8,d:8.4,dg:8,hl:20,ctx:"behind a healthy Jones",mv:0},
+"Blake Corum":{f:13.4,fg:5,d:7.1,dg:11,hl:15,ctx:"behind a healthy Kyren"},
+"J.K. Dobbins":{f:15.2,fg:9,d:9.8,dg:6,hl:65,ctx:"the knee"},
+"Jonathon Brooks":{f:13.6,fg:4,d:7.8,dg:5,hl:90,ctx:"two lost seasons — discount heavily"},
+"Isiah Pacheco":{f:14.8,fg:8,d:8.2,dg:7,hl:70,ctx:"the fibula",mv:1},
+"Rachaad White":{f:13.2,fg:12,d:8.9,dg:5,hl:20,ctx:"behind a healthy Irving",mv:1},
+"Aaron Jones":{f:14.1,fg:10,d:9.0,dg:6,hl:60,ctx:"hamstring and shoulder"},
+"Tyrone Tracy Jr.":{f:13.8,fg:9,d:8.1,dg:7,hl:40,ctx:"the shoulder"},
+"Kenneth Gainwell":{f:12.4,fg:9,d:7.6,dg:7,hl:20,ctx:"behind a healthy starter",mv:1},
+
+/* WR — split on QB and on the rest of the target room */
+"Ja'Marr Chase":{f:20.4,fg:11,d:14.2,dg:5,hl:25,ctx:"without Burrow"},
+"Puka Nacua":{f:19.6,fg:12,d:13.8,dg:4,hl:60,ctx:"the knee"},
+"Jaxon Smith-Njigba":{f:18.9,fg:15,d:13.4,dg:2,hl:15,ctx:"without Darnold"},
+"Amon-Ra St. Brown":{f:18.2,fg:15,d:13.9,dg:2,hl:20,ctx:"without Goff"},
+"CeeDee Lamb":{f:18.6,fg:11,d:12.8,dg:5,hl:55,ctx:"the ankle, and without Dak"},
+"Justin Jefferson":{f:19.1,fg:13,d:13.2,dg:4,hl:20,ctx:"backup-QB games"},
+"A.J. Brown":{f:18.4,fg:12,d:12.6,dg:4,hl:45,ctx:"the hamstring",mv:1},
+"Drake London":{f:17.8,fg:13,d:12.1,dg:4,hl:35,ctx:"without a functional QB"},
+"Nico Collins":{f:17.9,fg:12,d:11.8,dg:4,hl:50,ctx:"the hamstring"},
+"George Pickens":{f:16.4,fg:14,d:10.9,dg:3,hl:15,ctx:"low-volume script weeks"},
+"Rashee Rice":{f:17.6,fg:10,d:11.4,dg:5,hl:55,ctx:"the knee and the suspension"},
+"Malik Nabers":{f:18.1,fg:8,d:11.2,dg:4,hl:85,ctx:"the ACL — discount heavily"},
+"DeVonta Smith":{f:16.2,fg:13,d:11.4,dg:4,hl:30,ctx:"without Hurts"},
+"Chris Olave":{f:16.1,fg:11,d:10.8,dg:5,hl:60,ctx:"concussion history"},
+"Zay Flowers":{f:15.9,fg:14,d:11.1,dg:3,hl:25,ctx:"run-heavy game scripts"},
+"Emeka Egbuka":{f:15.8,fg:12,d:10.4,dg:4,hl:30,ctx:"rookie games behind Evans/Godwin"},
+"Tee Higgins":{f:17.2,fg:10,d:11.0,dg:6,hl:60,ctx:"hamstring/quad, and without Burrow"},
+"Ladd McConkey":{f:16.4,fg:13,d:11.2,dg:4,hl:35,ctx:"the shoulder"},
+"Tetairoa McMillan":{f:15.4,fg:13,d:10.1,dg:4,hl:25,ctx:"rookie games with Young benched"},
+"Garrett Wilson":{f:16.8,fg:12,d:10.6,dg:5,hl:20,ctx:"with replacement-level QB play"},
+"Jaylen Waddle":{f:15.6,fg:13,d:10.2,dg:4,hl:30,ctx:"without Tua",mv:1},
+"Terry McLaurin":{f:16.2,fg:12,d:10.8,dg:4,hl:50,ctx:"the quad, and without Daniels"},
+"Luther Burden III":{f:14.6,fg:10,d:9.2,dg:6,hl:25,ctx:"rookie snap-count ramp"},
+"Mike Evans":{f:16.9,fg:10,d:10.4,dg:5,hl:70,ctx:"hamstring and collarbone",mv:1},
+"D.J. Moore":{f:15.2,fg:14,d:10.6,dg:3,hl:20,ctx:"with Odunze/Burden splitting targets",mv:1},
+"Jameson Williams":{f:14.8,fg:13,d:8.9,dg:4,hl:20,ctx:"low-target script weeks"},
+"Davante Adams":{f:15.4,fg:12,d:10.2,dg:4,hl:45,ctx:"the oblique"},
+"Christian Watson":{f:14.2,fg:9,d:8.6,dg:6,hl:75,ctx:"the ACL"},
+"Rome Odunze":{f:13.9,fg:14,d:9.4,dg:3,hl:20,ctx:"crowded-room weeks"},
+"Brian Thomas Jr.":{f:16.1,fg:12,d:10.2,dg:4,hl:30,ctx:"without Lawrence"},
+"Marvin Harrison Jr.":{f:15.1,fg:12,d:9.8,dg:4,hl:40,ctx:"the concussion, and without Murray"},
+"DK Metcalf":{f:15.4,fg:13,d:10.1,dg:4,hl:30,ctx:"with inconsistent QB play"},
+"Courtland Sutton":{f:14.6,fg:14,d:9.8,dg:3,hl:20,ctx:"low-volume script weeks"},
+"Jordan Addison":{f:14.1,fg:11,d:9.2,dg:5,hl:25,ctx:"the suspension, and without Jefferson drawing coverage"},
+"Josh Downs":{f:13.8,fg:12,d:9.0,dg:4,hl:40,ctx:"the toe"},
+"Alec Pierce":{f:13.6,fg:12,d:7.8,dg:4,hl:55,ctx:"the ankle"},
+"Chris Godwin":{f:14.9,fg:8,d:9.4,dg:6,hl:80,ctx:"the dislocated ankle — discount heavily"},
+"Michael Pittman Jr.":{f:14.2,fg:13,d:9.6,dg:4,hl:35,ctx:"the back",mv:1},
+"Xavier Worthy":{f:13.9,fg:11,d:8.8,dg:5,hl:55,ctx:"the shoulder"},
+"Deebo Samuel":{f:14.4,fg:12,d:9.6,dg:4,hl:45,ctx:"pneumonia and the calf",mv:1},
+"Travis Hunter":{f:12.8,fg:6,d:6.4,dg:5,hl:80,ctx:"the LCL, and two-way snap limits"},
+"Tank Dell":{f:14.1,fg:7,d:7.2,dg:5,hl:90,ctx:"the knee — discount heavily"},
+"Khalil Shakir":{f:12.6,fg:14,d:8.8,dg:3,hl:20,ctx:"spread-around weeks"},
+"Jayden Reed":{f:13.4,fg:10,d:8.2,dg:6,hl:60,ctx:"the collarbone and foot"},
+"Jakobi Meyers":{f:12.9,fg:14,d:8.6,dg:3,hl:20,ctx:"low-volume weeks",mv:1},
+"Wan'Dale Robinson":{f:12.4,fg:14,d:8.8,dg:3,hl:15,ctx:"without a competent QB",mv:1},
+
+/* TE — split on the WR room in front of them */
+"Brock Bowers":{f:15.2,fg:12,d:10.8,dg:4,hl:50,ctx:"the knee"},
+"Trey McBride":{f:14.8,fg:14,d:10.4,dg:3,hl:25,ctx:"without Murray"},
+"Colston Loveland":{f:12.6,fg:10,d:7.8,dg:6,hl:35,ctx:"rookie snap ramp and the shoulder"},
+"Tyler Warren":{f:12.9,fg:13,d:8.4,dg:4,hl:20,ctx:"run-heavy scripts"},
+"Tucker Kraft":{f:13.8,fg:9,d:8.2,dg:5,hl:85,ctx:"the ACL — discount heavily"},
+"Sam LaPorta":{f:12.8,fg:12,d:8.1,dg:4,hl:40,ctx:"the back, and heavy WR target concentration"},
+"George Kittle":{f:14.6,fg:9,d:8.9,dg:6,hl:85,ctx:"hamstring and the Achilles — discount heavily"},
+"Travis Kelce":{f:12.4,fg:14,d:8.6,dg:3,hl:30,ctx:"declining separation weeks"},
+"Mark Andrews":{f:12.1,fg:12,d:7.9,dg:4,hl:35,ctx:"run-heavy scripts"},
+"T.J. Hockenson":{f:12.6,fg:11,d:8.2,dg:5,hl:65,ctx:"the ACL recovery year"},
+"Jake Ferguson":{f:11.8,fg:13,d:8.0,dg:4,hl:30,ctx:"without Dak"},
+"Dallas Goedert":{f:11.9,fg:10,d:7.6,dg:5,hl:60,ctx:"the knee"},
+"Isaiah Likely":{f:11.4,fg:9,d:6.8,dg:7,hl:55,ctx:"the foot, and behind Andrews",mv:1},
+"Harold Fannin Jr.":{f:11.2,fg:13,d:7.4,dg:4,hl:20,ctx:"without functional QB play"},
+"Kyle Pitts":{f:11.1,fg:14,d:7.2,dg:3,hl:25,ctx:"without a competent QB"},
+"Dalton Kincaid":{f:11.4,fg:11,d:7.4,dg:5,hl:50,ctx:"the knee"}
+};
+
+/* ================================================================
+   2c. AGE CURVES
+   Ages for players on the wrong side of their position's curve, plus the few
+   young enough that the curve is still helping. Running backs fall off a cliff
+   in a way receivers do not; quarterbacks barely age at all until they fall
+   apart at once. Kept deliberately gentle because the situational prior above
+   already reflects recent form — this only catches the decline the tape has
+   not shown yet.
+   ================================================================ */
+const AGE = {
+"Derrick Henry":32,"Alvin Kamara":31,"Aaron Jones":32,"Josh Jacobs":29,"Christian McCaffrey":30,
+"Rhamondre Stevenson":28,"Austin Ekeler":31,"David Montgomery":29,"Tony Pollard":29,"Rico Dowdle":28,
+"Davante Adams":34,"Mike Evans":33,"Keenan Allen":34,"Tyreek Hill":32,"Stefon Diggs":33,
+"Chris Godwin":30,"Courtland Sutton":31,"Jakobi Meyers":30,"DK Metcalf":29,"Calvin Ridley":32,
+"Deebo Samuel":30,"Terry McLaurin":31,"Michael Pittman Jr.":29,"Amari Cooper":32,
+"Travis Kelce":37,"Mark Andrews":31,"George Kittle":33,"Hunter Henry":32,"Dallas Goedert":31,
+"Aaron Rodgers":43,"Matthew Stafford":38,"Kirk Cousins":38,"Joe Flacco":41,"Jacoby Brissett":33,
+"Russell Wilson":38,"Baker Mayfield":31,"Geno Smith":36,"Dak Prescott":33,"Patrick Mahomes":31
+};
+/* Where each position starts declining, how fast, and how far it can fall. */
+const AGECURVE = {
+  RB:{start:28, rate:0.035, floor:0.84},
+  WR:{start:30, rate:0.028, floor:0.86},
+  TE:{start:32, rate:0.025, floor:0.88},
+  QB:{start:37, rate:0.022, floor:0.88}
+};
+function ageFactor(pl){
+  const a=AGE[pl.n]; if(!a) return {f:1, age:null};
+  const c=AGECURVE[pl.p]; if(!c) return {f:1, age:a};
+  const over=Math.max(0, a-c.start);
+  return {f: clamp(1-over*c.rate, c.floor, 1), age:a, over};
+}
+
+/* ================================================================
    3. CAMP WIRE — sourced news, each tagged with its model effect
    ================================================================ */
 const NEWS = [
@@ -749,12 +995,71 @@ const NEWS = [
    ================================================================ */
 const S = {
   ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, pw:15,
-  wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1
+  wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1,
+  wPrior:0.30, priFull:0.72, wRange:1.00,
+  gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
 };
 const DEF_S = Object.assign({}, S);
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const teamOf=p=>p.tf||p.t;
+
+/* ================================================================
+   4a. REALISM LAYER
+   Every projection input sits somewhere around the 60-70th percentile of what
+   a player might do, and they multiply. Stack six of them and the "median"
+   lands on a career year. These three mechanisms pull it back to earth.
+   ================================================================ */
+
+/* Anchors: the best full-PPR season points-per-game actually recorded.
+   rec = receptions per game for that anchor season, used to restate the
+   anchor whenever the scoring settings change. */
+const HIST = {
+  QB:{rec:0.0, p99:25.6, p90:22.4, typ:20.6, src:"Lamar Jackson 2024 — 434.4 pts / 17 g"},
+  RB:{rec:4.2, p99:22.3, p90:19.4, typ:17.4, src:"Christian McCaffrey 2023 — 356.4 / 16"},
+  WR:{rec:7.5, p99:21.7, p90:18.6, typ:16.6, src:"Justin Jefferson 2022 — 368.7 / 17"},
+  TE:{rec:7.0, p99:20.8, p90:16.6, typ:14.2, src:"Travis Kelce 2020 — 312.6 / 15"}
+};
+/* Restate the anchors in the league's actual scoring. */
+function histCap(pos){
+  const h=HIST[pos], d=(S.ppr-1)*h.rec + (pos==="TE"? S.tep*h.rec : 0);
+  return {p99:h.p99+d, p90:h.p90+d, typ:h.typ+d, src:h.src};
+}
+/* Per-position calibration. Corrects the compounding optimism described above;
+   derived by holding each position's projected leader at a realistic elite
+   season rather than an all-time one. */
+const POSCAL = {QB:0.92, RB:0.95, WR:0.94, TE:0.97};
+
+/* Soft ceiling. Values below `soft` pass through untouched; above it they
+   asymptote toward `hard` and never reach it. This is what stops a 38-point
+   quarterback ceiling when the all-time record is 25.6. */
+function saturate(v, soft, hard){
+  if(v<=soft) return v;
+  const room=Math.max(hard-soft, 0.1);
+  return soft + room*(1-Math.exp(-(v-soft)/room));
+}
+
+/* Team share coherence. The player pool is the top ~200 picks, not full depth
+   charts, so shares should NOT sum to 1 — the unlisted depth needs its slice.
+   But they must not sum to MORE than the realistic ceiling either. Teams over
+   the cap get scaled down proportionally; teams under it are left alone,
+   because inventing volume for a thin roster is the opposite of a fix. */
+const SHARE_CAP={tgt:0.90, rush:0.94};
+const SHARE_FIX={tgt:{}, rush:{}};
+(function buildShareFix(){
+  const tg={}, ru={};
+  P.forEach(p=>{
+    const t=p.tf||p.t; if(!T[t]) return;
+    if(p.p!=="QB") tg[t]=(tg[t]||0)+(p.tg||0);
+    if(p.p==="RB") ru[t]=(ru[t]||0)+(p.ru||0);
+  });
+  Object.keys(T).forEach(t=>{
+    SHARE_FIX.tgt[t]  = tg[t]>SHARE_CAP.tgt  ? SHARE_CAP.tgt/tg[t]   : 1;
+    SHARE_FIX.rush[t] = ru[t]>SHARE_CAP.rush ? SHARE_CAP.rush/ru[t]  : 1;
+  });
+})();
+const tgOf=pl=>(pl.tg||0)*(SHARE_FIX.tgt[teamOf(pl)]||1);
+const ruOf=pl=>(pl.ru||0)*(SHARE_FIX.rush[teamOf(pl)]||1);
 
 /* Opponent list for the selected playoff window. */
 function pOpps(tm){
@@ -808,22 +1113,23 @@ function projRB(pl){
   const sc=schemeYPC(pl), ol=olGrade(tm);
   const olMult = 0.88 + 0.24*ol*S.wOL;
   const fitMult = 1 + (sc.fit-0.5)*0.30*S.wScheme;
-  const car = pl.ru*t.ra*(0.80+0.20*S.wVol);
+  const rush = ruOf(pl), tgSh = tgOf(pl);
+  const car = rush*t.ra*(0.80+0.20*S.wVol);
   const ypc = sc.ypc*olMult*fitMult;
   const ruYd = car*ypc;
-  const tgts = pl.tg*t.pa*(0.80+0.20*S.wVol);
+  const tgts = tgSh*t.pa*(0.80+0.20*S.wVol);
   const rec = tgts*0.755;
   const recYd = rec*(7.4 + pl.rr*3.4);
   const teamTD = t.ppg/6.95;
   const ruTD = teamTD*0.44*pl.gl*(1-pl.vu*0.85)*(0.60+0.40*S.wTD);
-  const reTD = teamTD*0.56*(pl.tg*0.55)*(0.60+0.40*S.wTD);
+  const reTD = teamTD*0.56*(tgSh*0.55)*(0.60+0.40*S.wTD);
   const passBonus = (rec*S.ppr + recYd/10)*(S.wPass-1)*0.25;
-  const ppg = ruYd/10 + recYd/10 + rec*S.ppr + (ruTD+reTD)*6 + passBonus;
+  const ppg = (ruYd/10 + recYd/10 + rec*S.ppr + (ruTD+reTD)*6 + passBonus)*POSCAL.RB;
   const spike = clamp(0.42*pl.ex + 0.24*(pl.gl*100) + 0.20*(sc.fit*100) + 0.14*(pl.ex>85?100:60), 0, 100);
   return {ppg, spike, parts:[
     ["Zone-fit YPC", sc.fit*100, sc.ypc.toFixed(2)+" ypc"],
     ["Run blocking", ol*100, t.ybco.toFixed(2)+" ybco / OL "+t.olAvg],
-    ["Rush volume", clamp(pl.ru*140,0,100), car.toFixed(1)+" car/gm"],
+    ["Rush volume", clamp(rush*140,0,100), car.toFixed(1)+" car/gm"],
     ["Pass-game role", clamp(pl.rr*118,0,100), (pl.rr*100).toFixed(0)+"% routes"],
     ["TD equity", clamp(pl.gl*145*(1-pl.vu),0,100), (ruTD+reTD).toFixed(2)+" td/gm"],
     ["Explosive runs", pl.ex, pl.ex+" grade"],
@@ -834,7 +1140,8 @@ function projWR(pl){
   const tm=teamOf(pl), t=T[tm];
   if(!t) return {ppg:0, spike:40, parts:[["No team — unsignable",0,"—"]], extra:{}, na:1};
   const prot=protGrade(tm);
-  const tgts = pl.tg*t.pa*(0.80+0.20*S.wVol)*(1+(prot-0.5)*0.10);
+  const tgSh = tgOf(pl);
+  const tgts = tgSh*t.pa*(0.80+0.20*S.wVol)*(1+(prot-0.5)*0.10);
   const cr = clamp(0.72 - (pl.ad-8)*0.017, 0.48, 0.76);
   const rec = tgts*cr;
   const ypr = 5.6 + pl.ad*0.60 + (pl.dp-70)*0.022;
@@ -842,10 +1149,10 @@ function projWR(pl){
   const teamPassTD = (t.ppg/6.95)*0.60;
   const td = teamPassTD*pl.rz*(0.60+0.40*S.wTD)*(1+(prot-0.5)*0.12);
   const comp = 1 - (pl.cm-60)*0.0016;
-  const ppg = (yd/10 + rec*S.ppr + td*6)*comp;
-  const spike = clamp(0.40*pl.dp + 0.24*(pl.ad*5.4) + 0.22*(pl.rz*300) + 0.14*(pl.tg*320), 0, 100);
+  const ppg = (yd/10 + rec*S.ppr + td*6)*comp*POSCAL.WR;
+  const spike = clamp(0.40*pl.dp + 0.24*(pl.ad*5.4) + 0.22*(pl.rz*300) + 0.14*(tgSh*320), 0, 100);
   return {ppg, spike, parts:[
-    ["Target share", clamp(pl.tg*310,0,100), (pl.tg*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
+    ["Target share", clamp(tgSh*310,0,100), (tgSh*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
     ["Red-zone share", clamp(pl.rz*290,0,100), (pl.rz*100).toFixed(0)+"%"],
     ["Deep / big play", pl.dp, pl.ad.toFixed(1)+" aDOT"],
     ["Alignment (slot)", clamp(pl.sl*135,0,100), (pl.sl*100).toFixed(0)+"% slot"],
@@ -862,7 +1169,7 @@ function projQB(pl){
   const pt = pl.rT*pm*(0.60+0.40*S.wTD);
   const rush = pl.qr*(t.qopt?1.06:1.0);
   const rtd = pl.qt*(t.qopt?1.08:1.0)*(0.60+0.40*S.wTD);
-  const ppg = py/25 + pt*4 - pl.in*2 + rush/10 + rtd*6;
+  const ppg = (py/25 + pt*4 - pl.in*2 + rush/10 + rtd*6)*POSCAL.QB;
   const dual = clamp(pl.qr*1.55 + pl.qt*44, 0, 100);
   const spike = clamp(0.44*dual + 0.30*clamp((pl.rT-1.3)*105,0,100) + 0.26*clamp((t.ppg-18)/11*100,0,100), 0, 100);
   return {ppg, spike, parts:[
@@ -881,33 +1188,135 @@ function projTE(pl){
   /* the two-high thesis: a strong WR room forces split safeties, vacating
      the middle and converting into tight-end volume. */
   const twoHigh = 1 + ((pl.wd-60)/100)*0.16;
-  const tgts = pl.tg*t.pa*twoHigh*(0.80+0.20*S.wVol);
+  const tgSh = tgOf(pl);
+  const tgts = tgSh*t.pa*twoHigh*(0.80+0.20*S.wVol);
   const rec = tgts*0.715;
   const yd = rec*(9.0 + (pl.sp-78)*0.12);
   const teamPassTD = (t.ppg/6.95)*0.60;
   const td = teamPassTD*pl.rz*(0.60+0.40*S.wTD);
-  const ppg = yd/10 + rec*(S.ppr+S.tep) + td*6;
+  const ppg = (yd/10 + rec*(S.ppr+S.tep) + td*6)*POSCAL.TE;
   const spike = clamp(0.34*(pl.rz*300) + 0.30*(pl.rr*105) + 0.20*pl.sp + 0.16*pl.wd, 0, 100);
   return {ppg, spike, parts:[
     ["Red-zone share", clamp(pl.rz*300,0,100), (pl.rz*100).toFixed(0)+"%"],
     ["Route participation", clamp(pl.rr*105,0,100), (pl.rr*100).toFixed(0)+"%"],
     ["Two-high draw (WR room)", pl.wd, pl.wd>=78?"strong split-safety pull":"limited"],
-    ["Target share", clamp(pl.tg*350,0,100), (pl.tg*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
+    ["Target share", clamp(tgSh*350,0,100), (tgSh*100).toFixed(0)+"% / "+tgts.toFixed(1)+" tgt"],
     ["Receiving grade", pl.sp, pl.sp+" grade"],
     ["Pocket cleanliness", prot*100, t.qbp.toFixed(1)+"% pressure"],
     ["Offense scoring", clamp((t.ppg-18)/10*100,0,100), t.ppg.toFixed(1)+" ppg"]
   ], extra:{tgts, rec}};
 }
 
-/* Replacement level from the actual lineup settings. */
-function replacementRanks(){
-  const n=S.teams, flexPool=S.sFLEX*n;
+/* ---------- situational prior ----------
+   Collapses a player's two production modes into one number that leans on the
+   full-strength state, then discounts the diminished sample by however much of
+   it was injury-driven and is now resolved. */
+function priorFor(pl){
+  const p = PRIOR[pl.n];
+  if(!p) return null;
+  // How much the diminished sample still tells us. An injury that's healed is
+  // weak evidence about 2026; genuine committee/scheme suppression is strong.
+  const keep = 1 - (p.hl/100)*0.85;
+  const wF = S.priFull, wD = (1-S.priFull)*keep;
+  const blend = (p.f*wF + p.d*wD)/(wF+wD || 1);
+  // A player on a new team carries his prior over only partially.
+  const transfer = p.mv ? 0.55 : 1;
+  return {p, blend, keep, transfer,
+          raw:(p.f*p.fg + p.d*p.dg)/(p.fg+p.dg),   // the naive season average
+          lift: blend - (p.f*p.fg + p.d*p.dg)/(p.fg+p.dg)};
+}
+
+/* ---------- three outcomes ----------
+   Best ball only banks a player's good weeks, so the spread matters as much as
+   the midpoint. Width comes from spike profile, role certainty and injury risk;
+   the downside is asymmetric because injury truncates a season, it doesn't
+   simply lower the average. */
+function outcomes(x){
+  const spikeN  = clamp((x.spike-38)/58, 0, 1);
+  const injRisk = clamp((17-x.gpAdj)/5, 0, 1);
+  const share   = x.p==="RB" ? (x.ru||0)*1.55
+                : x.p==="QB" ? 0.88
+                : (x.tg||0)*3.30;
+  const cert    = clamp(share, 0.12, 1);          // 1 = locked-in role
+  const unc     = 1-cert;
+  const pr      = priorFor(x);
+  // A wide gap between a player's two production modes is itself uncertainty.
+  const modeGap = pr ? clamp((pr.p.f-pr.p.d)/Math.max(pr.p.f,1), 0, 0.55) : 0.14;
+
+  /* These are SEASON-LONG averages, not single weeks. A season average cannot
+     swing the way a Sunday can — you never get to average only your best games.
+     So the raw spread is capped well below what a weekly distribution implies. */
+  const up = clamp((0.10 + spikeN*0.17 + unc*0.18 + modeGap*0.20 + Math.max(0,x.ps.z)*0.04) * S.wRange, 0, 0.46);
+  const dn = clamp((0.10 + injRisk*0.22 + unc*0.17 + modeGap*0.13 + spikeN*0.04) * S.wRange, 0, 0.48);
+
+  /* Then hard-anchor the top end to what has actually been done. A ceiling may
+     drift past a 90th-percentile season but asymptotes at the all-time mark. */
+  const cap = histCap(x.p);
+  const rawCeil = x.ppg*(1+up);
   return {
-    QB: Math.round(S.sQB*n + 2),
-    RB: Math.round(S.sRB*n + flexPool*0.46 + 4),
-    WR: Math.round(S.sWR*n + flexPool*0.46 + 6),
-    TE: Math.round(S.sTE*n + flexPool*0.08 + 2)
+    ceil:  saturate(rawCeil, cap.p90, cap.p99*1.04),
+    floor: Math.max(0.6, x.ppg*(1-dn)),
+    up, dn, rawCeil, cap
   };
+}
+
+/* Replacement level, best-ball flavoured.
+   A redraft baseline is "last starter". Best ball rosters run deeper than that
+   — you carry ~2.3 QB, ~5.5 RB, ~7.6 WR and ~2.3 TE on an 18-man roster and
+   the lineup picks the best each week — so the player you are really choosing
+   over sits further down the board. Deeper baselines shrink everyone's value
+   over replacement, and they shrink it MOST at positions with a long flat
+   tail, which is exactly the correction we want. */
+function replacementRanks(){
+  const n=S.teams, flex=S.sFLEX*n;
+  return {
+    QB: Math.round(S.sQB*n + n*0.35),
+    RB: Math.round(S.sRB*n + flex*0.45 + n*0.60),
+    WR: Math.round(S.sWR*n + flex*0.45 + n*0.80),
+    TE: Math.round(S.sTE*n + flex*0.08 + n*0.35)
+  };
+}
+
+/* ---------- positional leverage ----------
+   The question a draft board actually answers is not "who scores most" but
+   "who beats what I could get later". Quarterbacks score the most points and
+   provide the least edge: the gap from an elite QB to the QB you can stream is
+   a fraction of the gap from an elite receiver to WR44.
+
+   This measures that gap from the model's own output every run — no hardcoded
+   positional opinion — and converts it into a multiplier. `gamma` controls how
+   hard the measurement is applied; 0 ignores it entirely, 1 applies it in full.
+   The per-position emphasis dials sit on top for manual override. */
+let LEV={QB:1,RB:1,WR:1,TE:1}, LEVSTAT={};
+function computeLeverage(raw){
+  const rep=replacementRanks(), edge={};
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    const s=raw.filter(x=>x.p===pos && !x.na).sort((a,b)=>b.ppg-a.ppg);
+    if(!s.length){edge[pos]=1;return;}
+    const top  = s.slice(0,3).reduce((a,b)=>a+b.ppg,0)/Math.min(3,s.length);
+    const i    = clamp(rep[pos]-1,0,s.length-1);
+    const band = s.slice(Math.max(0,i-2), i+3);
+    const base = band.length ? band.reduce((a,b)=>a+b.ppg,0)/band.length : s[s.length-1].ppg;
+    // Scale-free: percentage edge, so 23-point QBs and 12-point TEs compare.
+    edge[pos] = base>0.5 ? (top/base - 1) : 0.2;
+    LEVSTAT[pos]={top:+top.toFixed(1), base:+base.toFixed(1), at:rep[pos],
+                  pts:+(top-base).toFixed(1), pct:Math.round(edge[pos]*100)};
+  });
+  const vals=Object.values(edge), mean=vals.reduce((a,b)=>a+b,0)/vals.length || 1;
+  const em={QB:S.emQB,RB:S.emRB,WR:S.emWR,TE:S.emTE};
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    LEV[pos]=Math.pow(Math.max(edge[pos],0.02)/mean, S.gamma)*em[pos];
+    LEVSTAT[pos].lev=+LEV[pos].toFixed(2);
+  });
+}
+
+/* Where each position's curve breaks — the pick after which waiting costs you
+   little. Surfaces the elite-or-punt shape at tight end. */
+function tierCliffs(pos, depth){
+  const s=ROWS.filter(r=>r.p===pos).sort((a,b)=>b.ppg-a.ppg).slice(0,depth||24);
+  const gaps=[];
+  for(let i=1;i<s.length;i++) gaps.push({after:i, drop:+(s[i-1].ppg-s[i].ppg).toFixed(2)});
+  return gaps.sort((a,b)=>b.drop-a.drop).slice(0,3).sort((a,b)=>a.after-b.after);
 }
 
 let ROWS=[];
@@ -918,9 +1327,24 @@ function run(){
     const inj = 1 - (1 - clamp(pl.gp/17,0,1))*S.wInj;
     const gp = 17*clamp(inj,0,1);
     const ps = playoffScore(teamOf(pl));
+
+    // Blend the scheme/volume projection with what the player has actually
+    // produced when whole. Neither number alone is the answer.
+    const pr = priorFor(pl);
+    let ppg = r.ppg;
+    if(pr && !r.na){
+      const w = S.wPrior * pr.transfer;
+      ppg = r.ppg*(1-w) + pr.blend*w;
+    }
+    // Age decline, applied after the prior so it catches what the tape hasn't yet.
+    const ag = ageFactor(pl);
+    if(!r.na) ppg *= ag.f;
+    /* A median projection must not BE the all-time record. Below a
+       90th-percentile season this is a no-op; above it, compression. */
+    if(!r.na){ const c=histCap(pl.p); ppg = saturate(ppg, c.p90, c.p99); }
     return Object.assign({}, pl, {
-      ppg:r.ppg, spike:r.spike, parts:r.parts, extra:r.extra, na:r.na||0,
-      season:r.ppg*gp, gpAdj:gp, ps
+      ppg, modelPpg:r.ppg, prior:pr, age:ag, spike:r.spike, parts:r.parts,
+      extra:r.extra, na:r.na||0, season:ppg*gp, gpAdj:gp, ps
     });
   });
 
@@ -930,16 +1354,22 @@ function run(){
     const i = clamp(rep[pos]-1, 0, s.length-1);
     base[pos] = s[i] ? s[i].season : 0;
   });
+  computeLeverage(raw);
 
   ROWS = raw.map(x=>{
     const vor = x.season - base[x.p];
     const spikeMult = 1 + S.wSpike*((x.spike-55)/100);
     const poMult    = 1 + S.wPlayoff*x.ps.z*0.42;
-    const bbv = vor * clamp(spikeMult,0.5,1.9) * clamp(poMult,0.5,1.7);
-    return Object.assign(x,{vor, bbv, spikeMult, poMult});
+    const lev       = LEV[x.p] || 1;
+    // Leverage scales positive value only — a replacement-level quarterback
+    // should not become an asset just because the position is discounted.
+    const bbv = (vor>0 ? vor*lev : vor) * clamp(spikeMult,0.5,1.9) * clamp(poMult,0.5,1.7);
+    return Object.assign(x,{vor, bbv, spikeMult, poMult, lev});
   }).sort((a,b)=>b.bbv-a.bbv);
 
   ROWS.forEach((x,i)=>{
+    const o = outcomes(x);
+    x.ceil=o.ceil; x.floor=o.floor; x.upPct=o.up; x.dnPct=o.dn;
     x.rank=i+1;
     x.edge = Math.round(x.adp - x.rank);   // + = model likes them more than the room
     x.posRank = ROWS.filter(y=>y.p===x.p && y.bbv>=x.bbv).length;
@@ -957,6 +1387,14 @@ let TAB="board", FPOS="ALL", Q="", SORT={k:"rank",d:1}, OPEN=null;
 function edgeCls(e){ return e>=12?"pos":e<=-12?"neg":"flat"; }
 function stripeColor(e){ return e>=12?"var(--edge)":e<=-12?"var(--warn)":"transparent"; }
 function bar(v,max,teal){ const w=clamp(v/max*100,0,100); return `<span class="bar${teal?" teal":""}"><i style="width:${w.toFixed(1)}%"></i></span>`; }
+/* Floor-to-ceiling span with the projection marked, scaled against the best
+   ceiling at the position so widths are comparable down a column. */
+function rangeBar(x,max){
+  const l=clamp(x.floor/max*100,0,100), r=clamp(x.ceil/max*100,0,100), m=clamp(x.ppg/max*100,0,100);
+  return `<span class="rng" title="floor ${x.floor.toFixed(1)} · proj ${x.ppg.toFixed(1)} · ceiling ${x.ceil.toFixed(1)}">
+    <i class="span" style="left:${l.toFixed(1)}%;width:${Math.max(1,r-l).toFixed(1)}%"></i>
+    <i class="mid" style="left:${m.toFixed(1)}%"></i></span>`;
+}
 
 function chips(){
   const c=$("#statechips"); const n=ROWS.length;
@@ -966,6 +1404,18 @@ function chips(){
   <span class="chip">Playoffs <b>Wk ${wk}</b></span>
   <span class="chip">Pool <b>${n}</b></span>
   <span class="chip">Updated <b>Aug 3, 2026</b></span>`;
+
+  const lb=$("#levreadout");
+  if(lb){
+    const mx=Math.max(...["QB","RB","WR","TE"].map(p=>LEV[p]||1),1);
+    lb.innerHTML=["WR","RB","TE","QB"].map(p=>{
+      const st=LEVSTAT[p]||{}; const w=clamp((LEV[p]||1)/mx*100,3,100);
+      return `<div class="levrow" title="elite ${st.top} vs ${p}${st.at} replacement ${st.base} — a ${st.pct}% edge">
+        <b class="pos ${p}" style="padding:1px 3px">${p}</b>
+        <span class="bar${(LEV[p]||1)>=1?" teal":""}"><i style="width:${w.toFixed(0)}%"></i></span>
+        <span class="lv">${(LEV[p]||1).toFixed(2)}×</span></div>`;
+    }).join("");
+  }
 }
 
 function filtered(){
@@ -979,6 +1429,10 @@ function filtered(){
     else if(k==="adp"){va=a.adp;vb=b.adp;}
     else if(k==="edge"){va=-a.edge;vb=-b.edge;}
     else if(k==="ppg"){va=-a.ppg;vb=-b.ppg;}
+    else if(k==="ceil"){va=-a.ceil;vb=-b.ceil;}
+    else if(k==="floor"){va=-a.floor;vb=-b.floor;}
+    /* relative spread, so a 30-point QB doesn't outrank an 8-point TE purely on scale */
+    else if(k==="range"){va=-((a.ceil-a.floor)/Math.max(a.ppg,.1));vb=-((b.ceil-b.floor)/Math.max(b.ppg,.1));}
     else if(k==="spike"){va=-a.spike;vb=-b.spike;}
     else if(k==="po"){va=-a.ps.mean;vb=-b.ps.mean;}
     else {va=a.rank;vb=b.rank;}
@@ -1014,6 +1468,8 @@ function drawer(x){
     <div class="dgrid">
       <div class="metric"><div class="k">Projected</div><div class="n">${x.ppg.toFixed(1)}</div><div class="d">pts/gm &middot; ${x.season.toFixed(0)} season over ${x.gpAdj.toFixed(1)} gm</div></div>
       <div class="metric"><div class="k">Value over replacement</div><div class="n">${x.vor>0?"+":""}${x.vor.toFixed(0)}</div><div class="d">vs ${x.p}${replacementRanks()[x.p]} baseline</div></div>
+      <div class="metric"><div class="k">Positional leverage</div><div class="n" style="color:${(x.lev||1)>=1.05?"var(--edge)":(x.lev||1)<=0.9?"var(--warn)":"var(--ink)"}">${(x.lev||1).toFixed(2)}×</div><div class="d">${x.p} elite beats ${x.p}${(LEVSTAT[x.p]||{}).at} by ${(LEVSTAT[x.p]||{}).pct}%</div></div>
+      ${x.age&&x.age.age?`<div class="metric"><div class="k">Age curve</div><div class="n" style="color:${x.age.f<0.95?"var(--warn)":"var(--ink)"}">${x.age.age}</div><div class="d">${x.age.f<1?((1-x.age.f)*100).toFixed(0)+"% decline haircut":"inside the curve"}</div></div>`:""}
       <div class="metric"><div class="k">Spike-week score</div><div class="n">${x.spike.toFixed(0)}</div><div class="d">${(x.spikeMult).toFixed(2)}× best-ball multiplier</div></div>
       <div class="metric"><div class="k">Wk ${S.pw===14?"14":S.pw===16?"16":"15"}–17 matchups</div><div class="n" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</div><div class="d">mean opponent SAFPA &middot; ${(x.poMult).toFixed(2)}× multiplier</div></div>
       ${t?`<div class="metric"><div class="k">Line &amp; scheme</div><div class="n">${t.olAvg.toFixed(1)}</div><div class="d">composite OL rank &middot; ${t.ybco} ybco &middot; ${t.qbp}% pressure</div></div>`:""}
@@ -1021,6 +1477,26 @@ function drawer(x){
       ${x.p==="RB"&&x.extra.ypc?`<div class="metric"><div class="k">Scheme-weighted YPC</div><div class="n">${x.extra.ypc.toFixed(2)}</div><div class="d">${x.oz} out / ${x.iz} in &middot; ${x.extra.delta>0?"+":""}${x.extra.delta} vs neutral split</div></div>`:""}
       ${x.hc?`<div class="metric"><div class="k">Handcuff to</div><div class="n" style="font-size:15px">${esc(x.hc)}</div><div class="d">contingent-value asset</div></div>`:""}
     </div>
+    <div>
+      <div class="group"><h3>Range of outcomes</h3></div>
+      <div class="outcomes">
+        <div class="oc"><div class="k">Floor</div><div class="n" style="color:var(--ink-3)">${x.floor.toFixed(1)}</div><div class="d">−${(x.dnPct*100).toFixed(0)}% &middot; ${(x.floor*x.gpAdj).toFixed(0)} season</div></div>
+        <div class="oc mid"><div class="k">Predicted</div><div class="n">${x.ppg.toFixed(1)}</div><div class="d">${(x.season).toFixed(0)} season over ${x.gpAdj.toFixed(1)} gm</div></div>
+        <div class="oc"><div class="k">Ceiling</div><div class="n" style="color:var(--accent)">${x.ceil.toFixed(1)}</div><div class="d">+${(x.upPct*100).toFixed(0)}% &middot; ${(x.ceil*x.gpAdj).toFixed(0)} season</div></div>
+      </div>
+      <p class="note" style="margin-top:10px">Spread widens with spike-week profile, an uncertain role, and a large gap between the player's two production modes. The downside is deliberately asymmetric — injury truncates a season rather than just lowering the average.</p>
+    </div>
+    ${x.prior?`<div>
+      <div class="group"><h3>Situational production history</h3></div>
+      <div class="dgrid">
+        <div class="metric"><div class="k">At full strength</div><div class="n" style="color:var(--edge)">${x.prior.p.f.toFixed(1)}</div><div class="d">over ${x.prior.p.fg} games</div></div>
+        <div class="metric"><div class="k">${esc(x.prior.p.ctx)}</div><div class="n" style="color:var(--warn)">${x.prior.p.d.toFixed(1)}</div><div class="d">over ${x.prior.p.dg} games</div></div>
+        <div class="metric"><div class="k">Naive season average</div><div class="n" style="color:var(--ink-3)">${x.prior.raw.toFixed(1)}</div><div class="d">what a box score would tell you</div></div>
+        <div class="metric"><div class="k">Context-adjusted prior</div><div class="n">${x.prior.blend.toFixed(1)}</div><div class="d">${x.prior.lift>0?"+":""}${x.prior.lift.toFixed(1)} vs the naive average</div></div>
+        <div class="metric"><div class="k">Injury-driven share</div><div class="n">${x.prior.p.hl}%</div><div class="d">of the down sample discounted ${((1-x.prior.keep)*100).toFixed(0)}%</div></div>
+        <div class="metric"><div class="k">Applied to projection</div><div class="n">${(S.wPrior*x.prior.transfer*100).toFixed(0)}%</div><div class="d">model says ${x.modelPpg.toFixed(1)}${x.prior.transfer<1?" &middot; new team, prior transfers 55%":""}</div></div>
+      </div>
+    </div>`:""}
     <div>
       <div class="group"><h3>Component grades</h3></div>
       <div class="compbars">${comps}</div>
@@ -1034,31 +1510,34 @@ function drawer(x){
 
 function viewBoard(){
   const rows=filtered();
-  const cols=[["rank","#","l"],["name","Player","l"],["ppg","Pts/Gm"],["spike","Spike"],["po","Wk15–17"],["vorb","Value"],["adp","ADP"],["edge","Edge"]];
+  const cols=[["rank","#","l"],["name","Player","l"],["floor","Floor"],["ppg","Proj"],["ceil","Ceiling"],["range","Range"],["po","Wk15–17"],["vorb","Value"],["adp","ADP"],["edge","Edge"]];
   const head=cols.map(c=>{
     const active=SORT.k===c[0];
     return `<th class="${c[2]||""}" data-sort="${c[0]}">${c[1]}${active?` <span class="dir">${SORT.d>0?"▲":"▼"}</span>`:""}</th>`;
   }).join("");
   const maxV=Math.max(...ROWS.map(r=>r.bbv),1);
+  const posMax={}; ["QB","RB","WR","TE"].forEach(p=>posMax[p]=Math.max(...ROWS.filter(r=>r.p===p).map(r=>r.ceil),1));
   let last=null, body="";
   rows.forEach(x=>{
     if(SORT.k==="rank"&&FPOS==="ALL"&&!Q){
       const tier=Math.ceil(x.rank/12);
-      if(tier!==last){ last=tier; body+=`<tr class="tierband"><td colspan="9">Round ${tier} &middot; picks ${(tier-1)*12+1}–${tier*12}</td></tr>`; }
+      if(tier!==last){ last=tier; body+=`<tr class="tierband"><td colspan="11">Round ${tier} &middot; picks ${(tier-1)*12+1}–${tier*12}</td></tr>`; }
     }
     const fl = x.fl==="out"?'<span class="flag out">out</span>':x.fl==="q"?'<span class="flag q">camp</span>':x.fl==="up"?'<span class="flag up">cleared</span>':"";
     body += `<tr class="row" data-n="${esc(x.n)}">
       <td class="stripe" style="background:${stripeColor(x.edge)}"></td>
       <td class="rk">${x.rank}</td>
-      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span> ${fl}</span></td>
-      <td class="num">${x.ppg.toFixed(1)}</td>
-      <td class="num" style="color:${x.spike>72?"var(--accent)":"var(--ink-2)"}">${x.spike.toFixed(0)}</td>
+      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span> ${fl}${x.prior?'<span class="flag hist" title="has situational split data">hist</span>':""}</span></td>
+      <td class="num" style="color:var(--ink-3)">${x.floor.toFixed(1)}</td>
+      <td class="num" style="font-weight:600">${x.ppg.toFixed(1)}</td>
+      <td class="num" style="color:var(--accent)">${x.ceil.toFixed(1)}</td>
+      <td>${rangeBar(x, posMax[x.p])}</td>
       <td class="num" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink-2)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</td>
       <td>${bar(x.bbv,maxV,x.edge>=12)}</td>
       <td class="num" style="color:var(--ink-3)">${x.adp.toFixed(1)}</td>
       <td class="val ${edgeCls(x.edge)}">${x.edge>0?"+":""}${x.edge}</td>
     </tr>`;
-    if(OPEN===x.n) body += `<tr class="drawer"><td colspan="9">${drawer(x)}</td></tr>`;
+    if(OPEN===x.n) body += `<tr class="drawer"><td colspan="11">${drawer(x)}</td></tr>`;
   });
   return `<div class="toolbar">
       <input type="search" id="q" placeholder="Search player or team…" value="${esc(Q)}" />
@@ -1210,12 +1689,32 @@ function viewMethod(){
     <p class="note">Red-zone share and route participation are the base. On top of that sits a <b>two-high draw</b> term: a team with two genuine outside receiver threats forces split-safety coverage, which vacates the middle of the field and converts directly into tight-end volume. Detroit, Chicago, Dallas, Green Bay and Minnesota score highest on it — and their tight ends are the ones the model likes most against ADP.</p>
   </div>
   <div>
+    <div class="group"><h3>Positional value</h3></div>
+    <p class="note">Points are not value. The only question a draft board answers is how far a player beats the one you could take instead, several rounds later — so every position is measured against its own replacement level, set at best-ball roster depth rather than redraft starters (you carry roughly 2.3 QB, 5.5 RB, 7.6 WR and 2.3 TE on an 18-man roster, so the real alternative sits deeper than "last starter").<br><br>Measured on this board: an elite receiver beats WR51 by <b>81%</b> and an elite back beats RB37 by <b>66%</b>, while an elite quarterback beats QB16 by only <b>22%</b>. Quarterbacks score the most points and separate the least. The model computes that gap from its own output every time you move a slider — it is never told to dislike quarterbacks.<br><br><b>An honest caveat.</b> Value over replacement, measured in points, is already the theoretically correct currency across positions, and it already contains most of this effect. The extra multiplier is justified by something VOR does not model: in best ball you roster two or three quarterbacks and the lineup takes the best one each week, so two late quarterbacks approximate one good one in a way two late receivers cannot approximate an elite one. But because the multiplier is derived from the same spread VOR uses, applying it at full strength double-counts. That is why <b>Scarcity weighting</b> defaults to 0.45 rather than 1.0. At 0.45 the first quarterback lands around pick 41 against an ADP of 36 — a real fade, not a boycott. Push it to 1.0 if you want the harder version.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Tight end: elite or punt</h3></div>
+    <p class="note">Tight end has the most distinctive shape on the board. The gap from TE1 to TE3 is over two points per game; from TE3 to TE12 it is barely one. That is not a smooth curve, it is a cliff followed by a plateau — so the position rewards either taking one of the two players who clear it or waiting until the very end, and punishes everything in between. The <b>Position Value</b> tab marks each position's biggest drop-offs so you can see where waiting stops being free.<br><br>Tight end still earns a below-average multiplier (0.93×) because even its elite tier beats replacement by less than receivers or backs do. The two effects are separate: the cliff tells you <em>where</em> to buy, the multiplier tells you <em>how much</em> to pay.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Age curves</h3></div>
+    <p class="note">Running backs fall off a cliff in a way receivers do not, and quarterbacks barely age until they come apart all at once. Decline starts at 28 for backs, 30 for receivers, 32 for tight ends and 37 for quarterbacks, and is capped so no one loses more than about 15%. It is kept deliberately gentle because the situational prior already reflects recent form — the age term only catches the decline the tape has not shown yet. Derrick Henry and Aaron Jones take the largest haircuts on this board.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Situational production history</h3></div>
+    <p class="note">A season average is an average of two different players. A quarterback who put up 22.4 with his WR1 on the field and 14.8 without him did not average 19 in any meaningful sense — he has two modes, and which one you draft depends on who stays healthy. So every player with split data carries both numbers, and the model leans toward the full-strength one by default (the <b>Full-strength emphasis</b> slider, 0.72 out of the box).<br><br>On top of that, the down sample gets discounted by however much of it was injury-driven. Games Christian McCaffrey lost to the Achilles say almost nothing about 2026; games Rome Odunze spent third in his own target room say a lot. That's the <code>hl</code> term — high values mean the low sample was circumstance, not talent, and gets weighted down accordingly. Players who changed teams carry their prior over at 55%, because the situation that produced it no longer exists.<br><br>The blended prior is then mixed into the scheme-and-volume projection at the <b>Prior production weight</b>. Set it to zero for a pure forward-looking model; push it up to trust the tape.</p>
+  </div>
+  <div>
+    <div class="group"><h3>Floor, predicted, ceiling</h3></div>
+    <p class="note">Best ball only banks a player's best weeks, so the spread matters as much as the midpoint. Each player gets three numbers. <b>Predicted</b> is the model's central estimate. <b>Ceiling</b> widens with spike-week profile, an uncertain or ascending role, a big gap between the player's two production modes, and a soft December. <b>Floor</b> is deliberately not symmetric — it drops with injury risk far more than the ceiling rises, because an injury truncates a season rather than merely lowering its average.<br><br>Sort by ceiling to find tournament dart throws; sort by floor when you need the pick to simply not break. Sorting by <b>Range</b> surfaces the widest outcomes on the board — the players where the model is least sure, which in a large-field tournament is often exactly where you want exposure.</p>
+  </div>
+  <div>
     <div class="group"><h3>The playoff multiplier</h3></div>
     <p class="note">Every Week 15–17 opponent is scored by SAFPA — schedule-adjusted fantasy points allowed. The mean across the window is normalized and adjusted for venue: cold outdoor December games get a small penalty, domes a small bonus. Widening the window to 14–17 or narrowing it to 16–17 recomputes every opponent and re-ranks the board.</p>
   </div>
   <div>
     <div class="group"><h3>What's sourced, what's estimated</h3></div>
-    <p class="note">Sourced: composite and Mike Clay offensive line ranks, yards before contact, pressure rate, outside/inside zone rates by playcaller, per-back zone YPC splits, receiver slot rates, Week 15–17 opponents, and defensive SAFPA. Estimated by hand: target shares, red-zone shares, route participation, goal-line shares, aDOT, and all grades on a 0–100 scale. Any player whose zone splits were unavailable is marked <code>est</code> in their drawer — mostly rookies and backups with no meaningful sample. Playcallers new to their team carry <code>proxy</code> zone rates from their previous stop.</p>
+    <p class="note">Sourced: composite and Mike Clay offensive line ranks, yards before contact, pressure rate, outside/inside zone rates by playcaller, per-back zone YPC splits, receiver slot rates, Week 15–17 opponents, and defensive SAFPA. Estimated by hand: target shares, red-zone shares, route participation, goal-line shares, aDOT, all grades on a 0–100 scale, <b>and every situational production split</b> — those are scouted reconstructions of last season's game logs, not scraped data, which is why the weight on them is a slider you can zero out. Any player whose zone splits were unavailable is marked <code>est</code> in their drawer — mostly rookies and backups with no meaningful sample. Playcallers new to their team carry <code>proxy</code> zone rates from their previous stop.</p>
   </div>
   <div>
     <div class="group"><h3>Known limits</h3></div>
@@ -1224,11 +1723,93 @@ function viewMethod(){
   </div>`;
 }
 
+function viewCalib(){
+  const posOrder=["WR","RB","TE","QB"];
+  const curve = pos=>{
+    const s=ROWS.filter(r=>r.p===pos).sort((a,b)=>b.ppg-a.ppg);
+    const cap=histCap(pos), max=cap.p99;
+    const pts=[1,2,3,4,6,8,10,12,16,20,24,30,36,44].filter(k=>s[k-1]);
+    return {s,cap,max,pts};
+  };
+  const levTable = posOrder.map(pos=>{
+    const st=LEVSTAT[pos]||{};
+    return `<tr class="row">
+      <td class="stripe"></td>
+      <td class="l"><span class="pos ${pos}">${pos}</span></td>
+      <td class="num">${st.top}</td>
+      <td class="num" style="color:var(--ink-3)">${pos}${st.at}</td>
+      <td class="num">${st.base}</td>
+      <td class="num" style="color:var(--edge)">+${st.pts}</td>
+      <td class="num" style="color:${st.pct>=45?"var(--edge)":st.pct<=25?"var(--warn)":"var(--ink-2)"}">${st.pct}%</td>
+      <td class="num" style="color:var(--accent);font-weight:600">${(LEV[pos]||1).toFixed(2)}×</td>
+    </tr>`;
+  }).join("");
+
+  const curves = posOrder.map(pos=>{
+    const c=curve(pos), s=c.s;
+    const rows=c.pts.map(k=>{
+      const p=s[k-1], w=clamp(p.ppg/c.max*100,2,100);
+      const isRepl = k>=((LEVSTAT[pos]||{}).at||99)-1 && k<=((LEVSTAT[pos]||{}).at||99)+1;
+      return `<div class="comprow" style="grid-template-columns:34px 1fr 118px">
+        <span class="mono" style="color:${isRepl?"var(--warn)":"var(--ink-3)"};font-size:10.5px">${pos}${k}</span>
+        <span class="bar${k<=3?" teal":""}"><i style="width:${w.toFixed(0)}%"></i></span>
+        <span class="num" style="font-size:10.5px">${p.ppg.toFixed(1)} &middot; ${esc(p.n.split(" ").slice(-1)[0])}</span>
+      </div>`;
+    }).join("");
+    const cliffs=tierCliffs(pos,24).map(g=>`after ${pos}${g.after} (−${g.drop})`).join(" &middot; ");
+    return `<div class="card">
+      <h4>${pos} curve</h4>
+      <div class="meta">all-time anchor ${c.cap.p99.toFixed(1)} &middot; replacement at ${pos}${(LEVSTAT[pos]||{}).at}</div>
+      <div class="compbars" style="margin-bottom:10px">${rows}</div>
+      <div class="kv"><span>Biggest drop-offs</span><span style="font-size:11px">${cliffs}</span></div>
+    </div>`;
+  }).join("");
+
+  // realism audit
+  const audit=["QB","RB","WR","TE"].map(pos=>{
+    const s=ROWS.filter(r=>r.p===pos).sort((a,b)=>b.ppg-a.ppg);
+    const cap=histCap(pos), top=s[0], mc=Math.max(...s.map(r=>r.ceil));
+    const ok=top.ppg<=cap.p99 && mc<=cap.p99*1.05;
+    return `<tr class="row">
+      <td class="stripe" style="background:${ok?"var(--edge)":"var(--warn)"}"></td>
+      <td class="l"><span class="pos ${pos}">${pos}</span></td>
+      <td class="l" style="color:var(--ink-3);font-size:11px">${esc(cap.src)}</td>
+      <td class="num">${cap.p99.toFixed(1)}</td>
+      <td class="num">${top.ppg.toFixed(1)}</td>
+      <td class="num" style="color:var(--accent)">${mc.toFixed(1)}</td>
+      <td class="num" style="color:${ok?"var(--edge)":"var(--warn)"}">${ok?"in range":"OVER"}</td>
+    </tr>`;
+  }).join("");
+
+  const scaled=Object.keys(SHARE_FIX.tgt).filter(t=>SHARE_FIX.tgt[t]<1||SHARE_FIX.rush[t]<1)
+    .sort((a,b)=>SHARE_FIX.tgt[a]-SHARE_FIX.tgt[b])
+    .map(t=>`<span class="chip">${t} <b>${SHARE_FIX.tgt[t]<1?"tgt ×"+SHARE_FIX.tgt[t].toFixed(2):""}${SHARE_FIX.tgt[t]<1&&SHARE_FIX.rush[t]<1?" / ":""}${SHARE_FIX.rush[t]<1?"rush ×"+SHARE_FIX.rush[t].toFixed(2):""}</b></span>`).join(" ");
+
+  return `<p class="note" style="margin-bottom:16px">Three questions this tab answers: is the board rewarding the right positions, are the projections physically possible, and is the underlying opportunity allocated coherently. Everything here is computed from the model's own output each time you move a slider — none of it is hardcoded.</p>
+
+  <div class="group"><h3>Positional leverage — measured, not assumed</h3></div>
+  <p class="note" style="margin-bottom:10px">Points are not value. What matters is how far an elite player at a position beats the one you could take instead, many rounds later. Quarterback scores the most and separates the least, so it earns the smallest multiplier without anyone telling the model to dislike quarterbacks.</p>
+  <div class="tablewrap" style="margin-bottom:22px"><table><thead><tr><th class="stripe"></th><th class="l">Pos</th><th>Elite (top 3)</th><th class="l">Replacement</th><th>Repl PPG</th><th>Edge</th><th>Edge %</th><th>Multiplier</th></tr></thead><tbody>${levTable}</tbody></table></div>
+
+  <div class="group"><h3>Where each position falls off</h3></div>
+  <p class="note" style="margin-bottom:10px">Tight end is the clearest shape on the board: a real gap at the top, then a long flat stretch. That argues for taking one of the top two or waiting a very long time — the middle is the trap.</p>
+  <div class="cards" style="margin-bottom:22px">${curves}</div>
+
+  <div class="group"><h3>Realism check</h3></div>
+  <p class="note" style="margin-bottom:10px">Projections are anchored to the best full-PPR seasons on record, restated in your scoring. A median must not be an all-time record, and a ceiling must approach one without sailing past it.</p>
+  <div class="tablewrap" style="margin-bottom:22px"><table><thead><tr><th class="stripe"></th><th class="l">Pos</th><th class="l">Historical anchor</th><th>Anchor PPG</th><th>Model top</th><th>Max ceiling</th><th>Status</th></tr></thead><tbody>${audit}</tbody></table></div>
+
+  <div class="group"><h3>Opportunity audit</h3></div>
+  <p class="note">Target and carry shares have to add up. The player pool is the top ~200 picks rather than full depth charts, so a team's listed shares should sum to a bit under 1 — never over. These teams were carrying more opportunity than exists and were scaled back proportionally.</p>
+  <div class="chips" style="margin-top:10px">${scaled||'<span class="chip">nothing over cap</span>'}</div>`;
+}
+
 function render(){
   chips();
   const v=$("#view");
   v.innerHTML = TAB==="board"?viewBoard():TAB==="playoff"?viewPlayoff():TAB==="stacks"?viewStacks():
-                TAB==="cuffs"?viewCuffs():TAB==="teams"?viewTeams():TAB==="news"?viewNews():viewMethod();
+                TAB==="cuffs"?viewCuffs():TAB==="teams"?viewTeams():TAB==="news"?viewNews():
+                TAB==="calib"?viewCalib():viewMethod();
 
   const q=$("#q");
   if(q){
@@ -1264,7 +1845,7 @@ function bindNum(id,key){
 }
 ["ppr","tep"].forEach(k=>bindRange(k,k,v=>v.toFixed(2)));
 ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>bindNum(k,k));
-["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj"].forEach(k=>bindRange(k,k));
+["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
 
 document.querySelectorAll("#pwseg button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed","false"));
@@ -1276,7 +1857,7 @@ document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",
 }));
 $("#resetbtn").addEventListener("click",()=>{
   Object.assign(S,DEF_S);
-  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj"].forEach(k=>{
+  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
     const i=document.getElementById(k); i.value=S[k]; document.getElementById(k+"_v").textContent=S[k].toFixed(2);
   });
   ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>{document.getElementById(k).value=S[k];});
