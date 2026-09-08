@@ -468,6 +468,15 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
         discounted automatically on top of that.
       </p>
       <div class="field">
+        <label for="wTDreg">TD-rate regression <span class="v" id="wTDreg_v">1.00</span></label>
+        <input type="range" id="wTDreg" min="0" max="1.4" step="0.05" value="1" />
+      </div>
+      <p class="note">
+        Running back touchdowns per touch averaged 3.63% in 2025 with heavy scatter and little
+        year-to-year carryover. Goal-line share still matters, but an implied rate well above the
+        mean gets pulled back toward it. Zero trusts the rate at face value.
+      </p>
+      <div class="field">
         <label for="wBust">Bust / attrition risk <span class="v" id="wBust_v">1.00</span></label>
         <input type="range" id="wBust" min="0" max="1.6" step="0.05" value="1" />
       </div>
@@ -1020,7 +1029,7 @@ const S = {
   ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, pw:15,
   wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1,
   wPrior:0.30, priFull:0.72, wRange:1.00,
-  wBust:1.00, wCal:0.60, gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
+  wBust:1.00, wTDreg:1.00, wCal:0.60, gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
 };
 const DEF_S = Object.assign({}, S);
 
@@ -1056,6 +1065,23 @@ const POSCAL = {QB:0.90, RB:1.00, WR:1.00, TE:1.00};
 /* Soft ceiling. Values below `soft` pass through untouched; above it they
    asymptote toward `hard` and never reach it. This is what stops a 38-point
    quarterback ceiling when the all-time record is 25.6. */
+/* Touchdown regression.
+   Measured on 2025: running back touchdowns per touch averaged 3.63% with a
+   standard deviation of 1.36, and the year-to-year signal in it is weak --
+   Alvin Kamara ran 0.61% while RJ Harvey ran 6.78%. Goal-line share is a real
+   input but it is not stable enough to project forward at face value, so an
+   implied rate gets pulled toward the positional mean. Volume buys confidence:
+   a 400-touch workhorse keeps more of his rate than a 150-touch committee back,
+   but nobody keeps all of it. */
+const RB_TD_RATE = 0.0363;
+function regressTD(tdPerGame, touchesPerGame){
+  if(touchesPerGame < 0.5) return tdPerGame;
+  const implied = tdPerGame/touchesPerGame;
+  const conf = 0.45 + 0.25*clamp(touchesPerGame*17/400, 0, 1);
+  const w = 1-(1-conf)*S.wTDreg;
+  return (implied*w + RB_TD_RATE*(1-w))*touchesPerGame;
+}
+
 /* Attrition. Backtested against 2025: the model projected WR51 at 8.7 and RB37
    at 10.9 when reality delivered 6.4 and 8.0. Projections assume every player
    holds his nominal role for a full season, but deep players lose jobs, get
@@ -1160,17 +1186,22 @@ function projRB(pl){
   const ruTD = teamTD*0.44*pl.gl*(1-pl.vu*0.85)*(0.60+0.40*S.wTD);
   const reTD = teamTD*0.56*(tgSh*0.55)*(0.60+0.40*S.wTD);
   const passBonus = (rec*S.ppr + recYd/10)*(S.wPass-1)*0.25;
-  const ppg = (ruYd/10 + recYd/10 + rec*S.ppr + (ruTD+reTD)*6 + passBonus)*POSCAL.RB;
+  const touches = car + rec;
+  const tdRaw = ruTD + reTD;
+  const tdAdj = regressTD(tdRaw, touches);
+  const ppg = (ruYd/10 + recYd/10 + rec*S.ppr + tdAdj*6 + passBonus)*POSCAL.RB;
   const spike = clamp(0.42*pl.ex + 0.24*(pl.gl*100) + 0.20*(sc.fit*100) + 0.14*(pl.ex>85?100:60), 0, 100);
   return {ppg, spike, parts:[
     ["Zone-fit YPC", sc.fit*100, sc.ypc.toFixed(2)+" ypc"],
     ["Run blocking", ol*100, t.ybco.toFixed(2)+" ybco / OL "+t.olAvg],
     ["Rush volume", clamp(rush*140,0,100), car.toFixed(1)+" car/gm"],
     ["Pass-game role", clamp(pl.rr*118,0,100), (pl.rr*100).toFixed(0)+"% routes"],
-    ["TD equity", clamp(pl.gl*145*(1-pl.vu),0,100), (ruTD+reTD).toFixed(2)+" td/gm"],
+    ["Touch volume", clamp((touches-8)*7.2,0,100), touches.toFixed(1)+" touch/gm"],
+    ["TD equity (regressed)", clamp(pl.gl*145*(1-pl.vu),0,100), tdAdj.toFixed(2)+" td/gm"],
     ["Explosive runs", pl.ex, pl.ex+" grade"],
     ["QB vulture risk", 100-pl.vu*280, (pl.vu*100).toFixed(0)+"% siphon"]
-  ], extra:{ypc:sc.ypc, delta:sc.delta, car, tgts}};
+  ], extra:{ypc:sc.ypc, delta:sc.delta, car, tgts, touches, tdRaw, tdAdj,
+          tdRate:touches>0?tdAdj/touches:0}};
 }
 function projWR(pl){
   const tm=teamOf(pl), t=T[tm];
@@ -1547,6 +1578,7 @@ function drawer(x){
       <div class="metric"><div class="k">Wk ${S.pw===14?"14":S.pw===16?"16":"15"}–17 matchups</div><div class="n" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</div><div class="d">mean opponent SAFPA &middot; ${(x.poMult).toFixed(2)}× multiplier</div></div>
       ${t?`<div class="metric"><div class="k">Line &amp; scheme</div><div class="n">${t.olAvg.toFixed(1)}</div><div class="d">composite OL rank &middot; ${t.ybco} ybco &middot; ${t.qbp}% pressure</div></div>`:""}
       ${t?`<div class="metric"><div class="k">Playcaller</div><div class="n" style="font-size:15px">${esc(t.pc)}</div><div class="d">${t.oz}% outside zone / ${t.iz}% inside zone${t.px?" (proxied)":""}</div></div>`:""}
+      ${x.p==="RB"&&x.extra.touches?`<div class="metric"><div class="k">Touches &amp; TD rate</div><div class="n">${x.extra.touches.toFixed(1)}</div><div class="d">touch/gm &middot; ${(x.extra.tdRate*100).toFixed(2)}% td rate vs 3.63% league${x.extra.tdRaw>x.extra.tdAdj+0.02?" &middot; regressed from "+(x.extra.tdRaw/x.extra.touches*100).toFixed(2)+"%":""}</div></div>`:""}
       ${x.p==="RB"&&x.extra.ypc?`<div class="metric"><div class="k">Scheme-weighted YPC</div><div class="n">${x.extra.ypc.toFixed(2)}</div><div class="d">${x.oz} out / ${x.iz} in &middot; ${x.extra.delta>0?"+":""}${x.extra.delta} vs neutral split</div></div>`:""}
       ${x.hc?`<div class="metric"><div class="k">Handcuff to</div><div class="n" style="font-size:15px">${esc(x.hc)}</div><div class="d">contingent-value asset</div></div>`:""}
     </div>
@@ -1950,7 +1982,7 @@ function bindNum(id,key){
 }
 ["ppr","tep"].forEach(k=>bindRange(k,k,v=>v.toFixed(2)));
 ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>bindNum(k,k));
-["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
+["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
 
 document.querySelectorAll("#pwseg button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed","false"));
@@ -1962,7 +1994,7 @@ document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",
 }));
 $("#resetbtn").addEventListener("click",()=>{
   Object.assign(S,DEF_S);
-  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
+  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
     const i=document.getElementById(k); i.value=S[k]; document.getElementById(k+"_v").textContent=S[k].toFixed(2);
   });
   ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>{document.getElementById(k).value=S[k];});
