@@ -272,6 +272,10 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
 .metric .k{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
 .metric .n{font-family:var(--font-mono); font-size:17px; font-weight:600; margin:2px 0 5px; letter-spacing:-.02em}
 .metric .d{font-size:11px; color:var(--ink-3); line-height:1.4}
+.plangrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(66px,1fr)); gap:6px; max-width:900px}
+.pk{border:1px solid var(--line); border-radius:var(--r); padding:7px 4px; background:var(--panel); text-align:center}
+.pk .r{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); letter-spacing:.08em; margin-bottom:4px}
+.pk.QB{border-color:#6B5220} .pk.TE{border-color:#54325F}
 .outcomes{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--s3); max-width:640px}
 .oc{border:1px solid var(--line); border-radius:var(--r); padding:9px 11px; background:var(--panel)}
 .oc.mid{border-color:var(--accent)}
@@ -507,6 +511,7 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
       <button data-tab="teams" aria-selected="false">Team Sheet</button>
       <button data-tab="news" aria-selected="false">Camp Wire</button>
       <button data-tab="calib" aria-selected="false">Position Value</button>
+      <button data-tab="plan" aria-selected="false">Draft Plan</button>
       <button data-tab="method" aria-selected="false">Method</button>
     </nav>
     <div id="view"></div>
@@ -1791,6 +1796,38 @@ function viewMethod(){
   </div>`;
 }
 
+function viewPlan(){
+  const PLAN=[["RB",1],["WR",2],["WR",3],["RB",4],["WR",5],["WR",6],["RB",7],["WR",8],
+              ["QB",9],["WR",10],["RB",11],["TE",12],["QB",13],["WR",14],["TE",15],
+              ["QB",16],["WR",17],["TE",18]];
+  const EV=[["Leverage + cover",1989,28.7,0.19,1],["Leverage + 3TE",1982,24.7,0.47,0],
+            ["Balanced",1962,18.3,0.15,0],["Leverage, no cover",1903,7.7,1.37,0],
+            ["WR-heavy",1899,4.7,1.14,0],["RB-heavy",1887,6.7,1.32,0],
+            ["Early QB",1870,5.0,0.57,0],["Elite TE",1869,4.3,0.71,0]];
+  const counts={QB:3,RB:4,WR:8,TE:3};
+  const board=PLAN.map(([pos,rd])=>`<div class="pk ${pos}">
+      <div class="r">R${rd}</div><div class="p"><span class="pos ${pos}">${pos}</span></div></div>`).join("");
+  const ev=EV.map(r=>`<tr class="row">
+      <td class="stripe" style="background:${r[4]?"var(--edge)":"transparent"}"></td>
+      <td class="l"${r[4]?' style="font-weight:600"':''}>${esc(r[0])}</td>
+      <td class="num">${r[1]}</td>
+      <td class="num" style="color:${r[2]>=20?"var(--edge)":r[2]<=8?"var(--warn)":"var(--ink-2)"}">${r[2].toFixed(1)}%</td>
+      <td class="num" style="color:${r[3]>=1?"var(--warn)":"var(--ink-3)"}">${r[3].toFixed(2)}</td>
+    </tr>`).join("");
+  return `<p class="note" style="margin-bottom:16px">Everything below comes from simulating 300 eighteen-round drafts against <b>real 2025 weekly results</b>, with true best-ball scoring — the optimal lineup taken automatically every week — and with drafters misranking players the way real drafters do. Each strategy drafted from every seat, so draft position cancels out.</p>
+
+  <div class="group"><h3>The finding that changed the plan</h3></div>
+  <p class="note" style="margin-bottom:12px">Fading quarterback is correct, and the simulation confirms it: <b>Early QB finished last</b>. But the first version of this plan also carried only two quarterbacks and two tight ends, and that quietly cost more than the fade ever won. With two bodies at a one-slot position, byes and injuries left <b>1.37 weeks a season with an empty starting slot</b> — a literal zero. Adding a third quarterback and a third tight end, still drafted late, was worth <b>+86 points</b> and nearly quadrupled the win rate.<br><br>The lesson is a distinction worth keeping separate: <b>fade quarterback and tight end in draft capital, never in roster count.</b></p>
+  <div class="tablewrap" style="margin-bottom:22px"><table><thead><tr><th class="stripe"></th><th class="l">Strategy</th><th>Season pts</th><th>Win rate</th><th>Empty QB/TE weeks</th></tr></thead><tbody>${ev}</tbody></table></div>
+
+  <div class="group"><h3>Round-by-round</h3></div>
+  <p class="note" style="margin-bottom:12px">The winning shape: <b>${counts.RB} RB &middot; ${counts.WR} WR &middot; ${counts.QB} QB &middot; ${counts.TE} TE</b>. Backs and receivers only through round 8, first quarterback at 9, first tight end at 12, then fill the one-slot positions out so they are never empty.</p>
+  <div class="plangrid" style="margin-bottom:22px">${board}</div>
+
+  <div class="group"><h3>How to use it with the board</h3></div>
+  <p class="note">This is a shape, not a script. Take the highest-ranked player on the Big Board at the position the round calls for, and let the value column override you when someone falls a long way past their ADP. The plan's job is only to stop two failure modes the rankings cannot see on their own: spending early capital on a flat position, and leaving a starting slot empty in December.</p>`;
+}
+
 function viewCalib(){
   const posOrder=["WR","RB","TE","QB"];
   const curve = pos=>{
@@ -1877,7 +1914,7 @@ function render(){
   const v=$("#view");
   v.innerHTML = TAB==="board"?viewBoard():TAB==="playoff"?viewPlayoff():TAB==="stacks"?viewStacks():
                 TAB==="cuffs"?viewCuffs():TAB==="teams"?viewTeams():TAB==="news"?viewNews():
-                TAB==="calib"?viewCalib():viewMethod();
+                TAB==="calib"?viewCalib():TAB==="plan"?viewPlan():viewMethod();
 
   const q=$("#q");
   if(q){
