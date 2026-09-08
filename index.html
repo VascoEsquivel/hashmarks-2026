@@ -464,6 +464,24 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
         discounted automatically on top of that.
       </p>
       <div class="field">
+        <label for="wBust">Bust / attrition risk <span class="v" id="wBust_v">1.00</span></label>
+        <input type="range" id="wBust" min="0" max="1.6" step="0.05" value="1" />
+      </div>
+      <p class="note">
+        Backtested on 2025: projections assume every player keeps his role all year, which
+        overstates the replacement tier badly. This marks uncertain roles down toward what
+        actually happens. Zero restores the naive assumption.
+      </p>
+      <div class="field">
+        <label for="wCal">Curve calibration <span class="v" id="wCal_v">0.60</span></label>
+        <input type="range" id="wCal" min="0" max="1" step="0.05" value="0.60" />
+      </div>
+      <p class="note">
+        Backtested on 2025: rank for rank the projected curve was the wrong shape, too low at the
+        top and too high through the middle and tail. This maps the magnitudes onto the curve real
+        seasons actually produce while keeping the model's ordering. Zero returns to raw projections.
+      </p>
+      <div class="field">
         <label for="wRange">Outcome spread <span class="v" id="wRange_v">1.00</span></label>
         <input type="range" id="wRange" min="0.4" max="1.8" step="0.05" value="1" />
       </div>
@@ -997,7 +1015,7 @@ const S = {
   ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, pw:15,
   wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1,
   wPrior:0.30, priFull:0.72, wRange:1.00,
-  gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
+  wBust:1.00, wCal:0.60, gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
 };
 const DEF_S = Object.assign({}, S);
 
@@ -1015,10 +1033,10 @@ const teamOf=p=>p.tf||p.t;
    rec = receptions per game for that anchor season, used to restate the
    anchor whenever the scoring settings change. */
 const HIST = {
-  QB:{rec:0.0, p99:25.6, p90:22.4, typ:20.6, src:"Lamar Jackson 2024 — 434.4 pts / 17 g"},
-  RB:{rec:4.2, p99:22.3, p90:19.4, typ:17.4, src:"Christian McCaffrey 2023 — 356.4 / 16"},
-  WR:{rec:7.5, p99:21.7, p90:18.6, typ:16.6, src:"Justin Jefferson 2022 — 368.7 / 17"},
-  TE:{rec:7.0, p99:20.8, p90:16.6, typ:14.2, src:"Travis Kelce 2020 — 312.6 / 15"}
+  QB:{rec:0.0, p99:25.6, p90:22.4, typ:20.6, src:"Lamar Jackson 2024 — 25.6 half-PPR ppg"},
+  RB:{rec:4.2, p99:23.9, p90:21.1, typ:18.6, src:"Christian McCaffrey 2025 — 21.5 half-PPR ppg"},
+  WR:{rec:7.5, p99:23.4, p90:20.3, typ:17.9, src:"Puka Nacua 2025 — 19.4 half-PPR ppg"},
+  TE:{rec:7.0, p99:20.8, p90:17.5, typ:14.6, src:"Travis Kelce 2020 — 17.3 half-PPR ppg"}
 };
 /* Restate the anchors in the league's actual scoring. */
 function histCap(pos){
@@ -1028,11 +1046,24 @@ function histCap(pos){
 /* Per-position calibration. Corrects the compounding optimism described above;
    derived by holding each position's projected leader at a realistic elite
    season rather than an all-time one. */
-const POSCAL = {QB:0.92, RB:0.95, WR:0.94, TE:0.97};
+const POSCAL = {QB:0.90, RB:1.00, WR:1.00, TE:1.00};
 
 /* Soft ceiling. Values below `soft` pass through untouched; above it they
    asymptote toward `hard` and never reach it. This is what stops a 38-point
    quarterback ceiling when the all-time record is 25.6. */
+/* Attrition. Backtested against 2025: the model projected WR51 at 8.7 and RB37
+   at 10.9 when reality delivered 6.4 and 8.0. Projections assume every player
+   holds his nominal role for a full season, but deep players lose jobs, get
+   benched and bust, and that is precisely where the error lives. Certain roles
+   are untouched; uncertain ones are marked down toward what actually happens. */
+function attrition(pl){
+  const share = pl.p==="RB" ? (ruOf(pl)||0)*1.55
+              : pl.p==="QB" ? 0.88
+              : (tgOf(pl)||0)*3.30;
+  const cert = clamp(share, 0.10, 1);
+  return 1 - (1-(0.62 + 0.38*cert))*S.wBust;
+}
+
 function saturate(v, soft, hard){
   if(v<=soft) return v;
   const room=Math.max(hard-soft, 0.1);
@@ -1339,12 +1370,49 @@ function run(){
     // Age decline, applied after the prior so it catches what the tape hasn't yet.
     const ag = ageFactor(pl);
     if(!r.na) ppg *= ag.f;
-    /* A median projection must not BE the all-time record. Below a
-       90th-percentile season this is a no-op; above it, compression. */
-    if(!r.na){ const c=histCap(pl.p); ppg = saturate(ppg, c.p90, c.p99); }
+    // Attrition: uncertain roles do not survive a full season intact.
+    const at = attrition(pl);
+    if(!r.na) ppg *= at;
     return Object.assign({}, pl, {
-      ppg, modelPpg:r.ppg, prior:pr, age:ag, spike:r.spike, parts:r.parts,
+      ppg, modelPpg:r.ppg, prior:pr, age:ag, attr:at, spike:r.spike, parts:r.parts,
       extra:r.extra, na:r.na||0, season:ppg*gp, gpAdj:gp, ps
+    });
+  });
+
+  /* ---- rank calibration ----
+     Backtesting against 2025 showed the projected curve was the wrong SHAPE,
+     not just the wrong width: too low at the top, too high through the middle
+     and the tail. A linear stretch cannot fix that, because reality is convex.
+
+     So the model's ordering -- which is its actual predictive content -- is
+     kept, and only the magnitudes are mapped onto the curve real seasons
+     actually produce. REF is the observed 2025 half-PPR points per game at
+     each positional rank. Blending rather than replacing keeps the model's
+     own opinion about who is better than their rank implies. */
+  const REF={
+    WR:[[1,19.4],[3,15.7],[6,14.4],[12,12.1],[24,10.3],[36,8.9],[51,6.4],[75,4.6]],
+    RB:[[1,21.5],[3,19.5],[6,16.8],[12,14.1],[24,11.1],[37,8.0],[55,4.8]],
+    TE:[[1,14.9],[3,12.1],[6,9.8],[12,8.8],[17,7.9],[30,5.2]],
+    QB:[[1,22.0],[3,21.1],[6,20.6],[12,18.0],[16,17.1],[30,11.5]]
+  };
+  const refAt=(pos,r)=>{
+    const c=REF[pos]; if(r<=c[0][0]) return c[0][1];
+    for(let i=1;i<c.length;i++){
+      if(r<=c[i][0]){
+        const [r0,v0]=c[i-1], [r1,v1]=c[i];
+        return v0 + (v1-v0)*((r-r0)/(r1-r0));
+      }
+    }
+    return c[c.length-1][1];
+  };
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    const g=raw.filter(x=>x.p===pos && !x.na).sort((a,b)=>b.ppg-a.ppg);
+    if(g.length<6) return;
+    const c=histCap(pos), w=clamp(S.wCal,0,1);
+    g.forEach((x,i)=>{
+      const ref=refAt(pos,i+1);
+      x.ppg = saturate(Math.max(0.4, x.ppg*(1-w) + ref*w), c.p90, c.p99);
+      x.season = x.ppg*x.gpAdj;
     });
   });
 
@@ -1845,7 +1913,7 @@ function bindNum(id,key){
 }
 ["ppr","tep"].forEach(k=>bindRange(k,k,v=>v.toFixed(2)));
 ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>bindNum(k,k));
-["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
+["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
 
 document.querySelectorAll("#pwseg button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed","false"));
@@ -1857,7 +1925,7 @@ document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",
 }));
 $("#resetbtn").addEventListener("click",()=>{
   Object.assign(S,DEF_S);
-  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
+  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
     const i=document.getElementById(k); i.value=S[k]; document.getElementById(k+"_v").textContent=S[k].toFixed(2);
   });
   ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>{document.getElementById(k).value=S[k];});
