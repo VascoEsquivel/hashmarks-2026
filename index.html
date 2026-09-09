@@ -272,6 +272,8 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
 .metric .k{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
 .metric .n{font-family:var(--font-mono); font-size:17px; font-weight:600; margin:2px 0 5px; letter-spacing:-.02em}
 .metric .d{font-size:11px; color:var(--ink-3); line-height:1.4}
+.pill.mine{border-color:var(--accent-dim); color:var(--accent)}
+.pill.mine:hover{background:var(--accent); color:#15180F; border-color:var(--accent)}
 .plangrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(66px,1fr)); gap:6px; max-width:900px}
 .pk{border:1px solid var(--line); border-radius:var(--r); padding:7px 4px; background:var(--panel); text-align:center}
 .pk .r{font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); letter-spacing:.08em; margin-bottom:4px}
@@ -514,6 +516,7 @@ tr.drawer > td{padding:0; background:var(--ground); text-align:left; white-space
   <main class="board">
     <nav class="tabs" id="tabs">
       <button data-tab="board" aria-selected="true">Big Board</button>
+      <button data-tab="draft" aria-selected="false">Live Draft</button>
       <button data-tab="playoff" aria-selected="false">Playoff Lab</button>
       <button data-tab="stacks" aria-selected="false">Stacks</button>
       <button data-tab="cuffs" aria-selected="false">Handcuffs</button>
@@ -1828,6 +1831,180 @@ function viewMethod(){
   </div>`;
 }
 
+/* ================================================================
+   LIVE DRAFT ROOM
+   Mark players as they come off the board; the recommendation reprices
+   every pick against the roster shape the simulation produced.
+   ================================================================ */
+const DRAFT = {slot:6, taken:{}, mine:[], log:[]};
+const PLAN_COUNTS = {RB:4, WR:8, QB:3, TE:3};
+// The shape the simulation produced, round by round.
+const PLAN_SEQ = ['RB','WR','WR','RB','WR','WR','RB','WR','QB','WR','RB','TE','QB','WR','TE','QB','WR','TE'];
+const QB_WINDOW = [7,9];          // measured optimum for the first quarterback
+const TE_WINDOW = [10,12];
+
+function draftSave(){ try{ localStorage.setItem('hm_draft', JSON.stringify(DRAFT)); }catch(e){} }
+function draftLoad(){
+  try{ const v=JSON.parse(localStorage.getItem('hm_draft')||'null');
+    if(v && v.taken){ DRAFT.slot=v.slot||6; DRAFT.taken=v.taken; DRAFT.mine=v.mine||[]; DRAFT.log=v.log||[]; }
+  }catch(e){}
+}
+const draftedCount = ()=>Object.keys(DRAFT.taken).length;
+const myCounts = ()=>{ const c={QB:0,RB:0,WR:0,TE:0};
+  DRAFT.mine.forEach(n=>{ const p=ROWS.find(r=>r.n===n); if(p) c[p.p]++; }); return c; };
+/* Snake order: which overall pick is mine in a given round. */
+function myPickNo(round){
+  const t=S.teams, s=clamp(DRAFT.slot,1,t);
+  return (round-1)*t + (round%2===1 ? s : t-s+1);
+}
+function myRound(){ return DRAFT.mine.length + 1; }
+function picksUntilMine(){
+  const overall = draftedCount()+1, r=myRound(), mine=myPickNo(r);
+  return Math.max(0, mine-overall);
+}
+function pickPlayer(name, isMine){
+  if(DRAFT.taken[name]) return;
+  DRAFT.taken[name]= isMine ? 'me' : 'them';
+  if(isMine) DRAFT.mine.push(name);
+  DRAFT.log.push({n:name, mine:!!isMine});
+  draftSave();
+}
+function undoPick(){
+  const last=DRAFT.log.pop(); if(!last) return;
+  delete DRAFT.taken[last.n];
+  if(last.mine) DRAFT.mine=DRAFT.mine.filter(x=>x!==last.n);
+  draftSave();
+}
+
+/* How badly each position needs bodies, given the plan and rounds remaining. */
+function positionNeed(){
+  const c=myCounts(), left=Math.max(0, S.roster-DRAFT.mine.length), need={};
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    const deficit=Math.max(0, PLAN_COUNTS[pos]-c[pos]);
+    need[pos]={have:c[pos], target:PLAN_COUNTS[pos], deficit,
+               urgency: left>0 ? deficit/left : (deficit>0?1:0)};
+  });
+  return {need, left, counts:c};
+}
+
+/* Recommendation: model value, tilted by what the roster still owes. */
+function recommend(){
+  const {need}=positionNeed(), r=myRound();
+  const avail=ROWS.filter(x=>!DRAFT.taken[x.n] && x.bbv>0);
+  return avail.map(x=>{
+    const nd=need[x.p];
+    const planPos = PLAN_SEQ[Math.min(r,PLAN_SEQ.length)-1];
+    let mult=1+Math.min(nd.urgency,1)*0.85;
+    let why=[];
+    if(x.p===planPos && nd.deficit>0){ mult*=1.9; why.push("the plan calls for "+x.p+" here"); }
+    if(nd.deficit===0){ mult*=0.35; why.push("slot already filled"); }
+    // Single-slot positions: too early is a real cost, too late is a zero.
+    if(x.p==="QB"){
+      if(r<QB_WINDOW[0]-1){ mult*=0.30; why.push("before the round "+QB_WINDOW[0]+"–"+QB_WINDOW[1]+" window"); }
+      else if(r<=QB_WINDOW[1]+2 && nd.deficit>0){ mult*=1.25; why.push("inside the QB window"); }
+    }
+    if(x.p==="TE" && r<TE_WINDOW[0]-2 && nd.deficit>0 && x.posRank>2){ mult*=0.45; why.push("mid-tier TE, wait"); }
+    if(nd.urgency>0.62 && nd.deficit>0){ mult*=1.35; why.push("running out of rounds to fill "+x.p); }
+    if(x.ps.mean>=5) why.push("Wk15–17 "+(x.ps.mean>0?"+":"")+x.ps.mean);
+    if(x.edge>=15) why.push("+"+x.edge+" vs ADP");
+    return {x, s:x.bbv*mult, why};
+  }).sort((a,b)=>b.s-a.s);
+}
+
+function viewDraft(){
+  const {need,counts,left}=positionNeed();
+  const r=myRound(), overall=draftedCount()+1, until=picksUntilMine();
+  const recs=recommend();
+  const avail=ROWS.filter(x=>!DRAFT.taken[x.n]);
+  const q=Q.toLowerCase();
+  const list=(q?avail.filter(x=>x.n.toLowerCase().includes(q)||x.t.toLowerCase().includes(q)):avail)
+    .filter(x=>FPOS==="ALL"||x.p===FPOS).slice(0,60);
+
+  // recent positional run
+  const last=DRAFT.log.slice(-12).map(l=>{const p=ROWS.find(x=>x.n===l.n);return p&&p.p;}).filter(Boolean);
+  const run={}; last.forEach(p=>run[p]=(run[p]||0)+1);
+
+  const needCards=["RB","WR","QB","TE"].map(pos=>{
+    const n=need[pos], pct=clamp(n.have/n.target*100,0,100);
+    const hot=n.urgency>0.62 && n.deficit>0;
+    return `<div class="metric" style="${hot?"border-color:var(--warn)":""}">
+      <div class="k">${pos} <span style="color:var(--ink-3)">${n.have}/${n.target}</span></div>
+      <div class="n" style="font-size:15px;color:${n.deficit===0?"var(--edge)":hot?"var(--warn)":"var(--ink)"}">${n.deficit===0?"set":"need "+n.deficit}</div>
+      <span class="bar${n.deficit===0?" teal":""}"><i style="width:${pct}%"></i></span>
+      <div class="d" style="margin-top:5px">${run[pos]?run[pos]+" gone in last 12":"&nbsp;"}</div>
+    </div>`;}).join("");
+
+  const recRows=recs.slice(0,6).map((c,i)=>`<tr class="row" data-take="${esc(c.x.n)}">
+      <td class="stripe" style="background:${i===0?"var(--accent)":"transparent"}"></td>
+      <td class="l"><span class="pname"><b>${esc(c.x.n)}</b> <span class="pos ${c.x.p}">${c.x.p}${c.x.posRank}</span> <span class="team">${esc(c.x.t)}</span></span></td>
+      <td class="num">${c.x.ppg.toFixed(1)}</td>
+      <td class="num" style="color:var(--accent)">${c.x.ceil.toFixed(1)}</td>
+      <td class="num" style="color:var(--ink-3)">${c.x.adp.toFixed(0)}</td>
+      <td class="l" style="color:var(--ink-3);font-size:11px">${esc(c.why.slice(0,2).join(" &middot; "))||"best available"}</td>
+      <td><button class="pill mine" data-mine="${esc(c.x.n)}">Draft</button></td>
+    </tr>`).join("");
+
+  const rows=list.map(x=>`<tr class="row">
+      <td class="stripe"></td>
+      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span></span></td>
+      <td class="num">${x.ppg.toFixed(1)}</td>
+      <td class="num" style="color:var(--accent)">${x.ceil.toFixed(1)}</td>
+      <td class="num" style="color:var(--ink-3)">${x.adp.toFixed(0)}</td>
+      <td class="num ${edgeCls(x.edge)}">${x.edge>0?"+":""}${x.edge}</td>
+      <td style="white-space:nowrap">
+        <button class="pill" data-take="${esc(x.n)}">Taken</button>
+        <button class="pill mine" data-mine="${esc(x.n)}">Mine</button></td>
+    </tr>`).join("");
+
+  const roster=["QB","RB","WR","TE"].map(pos=>{
+    const ps=DRAFT.mine.map(n=>ROWS.find(x=>x.n===n)).filter(x=>x&&x.p===pos);
+    if(!ps.length) return "";
+    return `<div class="kv"><span><span class="pos ${pos}">${pos}</span> ${ps.map(p=>esc(p.n)).join(", ")}</span><span>${ps.reduce((a,b)=>a+b.ppg,0).toFixed(1)}</span></div>`;
+  }).join("");
+
+  const gate = r<QB_WINDOW[0] ? `Quarterback can wait &mdash; the window opens round ${QB_WINDOW[0]}.`
+             : need.QB.deficit>0 && r>=QB_WINDOW[0] && r<=QB_WINDOW[1]+2 ? `You are inside the quarterback window. Take one.`
+             : need.QB.deficit>0 && left<=need.QB.deficit+1 ? `Fill quarterback now or you will start a week empty.`
+             : `Roster shape is on track.`;
+
+  return `<div class="toolbar">
+      <label style="font-size:11.5px;color:var(--ink-2)">Draft slot
+        <input type="number" id="dslot" min="1" max="${S.teams}" value="${DRAFT.slot}" style="width:56px;margin-left:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:5px" /></label>
+      <span class="chip">Pick <b>${overall}</b></span>
+      <span class="chip">Your round <b>${r}</b> &middot; pick <b>${myPickNo(r)}</b></span>
+      <span class="chip">${until===0?"<b>ON THE CLOCK</b>":until+" picks away"}</span>
+      <span class="spacer"></span>
+      <button class="pill" id="undo">Undo</button>
+      <button class="pill" id="resetdraft">Reset</button>
+    </div>
+    <p class="note" style="margin:0 0 14px">${gate}</p>
+    <div class="dgrid" style="margin-bottom:18px">${needCards}</div>
+
+    ${(()=>{const pp=PLAN_SEQ[Math.min(r,PLAN_SEQ.length)-1], nd=need[pp];
+       const best=recs.filter(c=>c.x.p===pp)[0];
+       if(!nd || nd.deficit===0) return "";
+       return `<div class="card" style="border-color:var(--accent);margin-bottom:18px">
+         <div class="meta">Round ${r} &middot; the plan</div>
+         <h4 style="margin-bottom:6px">Take a <span class="pos ${pp}" style="font-size:13px;padding:2px 6px">${pp}</span></h4>
+         <p style="margin-bottom:8px">${pp==="QB"?`This is the window. Across 300 simulated drafts, taking your first quarterback in rounds 7&ndash;9 beat taking one in round 3 by 59 points and more than doubled the win rate. You still need ${nd.deficit}.`
+           :pp==="TE"?`Tight end falls off a cliff after the top few and then goes flat. You need ${nd.deficit} more, and late is fine &mdash; empty is not.`
+           :`You are ${nd.deficit} short of the ${nd.target} the winning shape carries.`}</p>
+         ${best?`<div class="kv" style="align-items:center"><span>Best available &mdash; <b>${esc(best.x.n)}</b> <span class="team">${esc(best.x.t)}</span> &middot; ${best.x.ppg.toFixed(1)} proj &middot; ADP ${best.x.adp.toFixed(0)}</span><button class="pill mine" data-mine="${esc(best.x.n)}">Draft</button></div>`:""}
+       </div>`;})()}
+    <div class="group"><h3>Recommended &mdash; round ${r}</h3></div>
+    <div class="tablewrap" style="margin-bottom:20px"><table><thead><tr><th class="stripe"></th><th class="l">Player</th><th>Proj</th><th>Ceiling</th><th>ADP</th><th class="l">Why</th><th></th></tr></thead><tbody>${recRows}</tbody></table></div>
+
+    ${DRAFT.mine.length?`<div class="group"><h3>Your team &mdash; ${DRAFT.mine.length} of ${S.roster}</h3></div>
+    <div class="card" style="margin-bottom:20px">${roster}</div>`:""}
+
+    <div class="group"><h3>Board &mdash; ${avail.length} available</h3></div>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Type a name, press Enter to mark taken…" value="${esc(Q)}" />
+      ${["ALL","QB","RB","WR","TE"].map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
+    </div>
+    <div class="tablewrap"><table><thead><tr><th class="stripe"></th><th class="l">Player</th><th>Proj</th><th>Ceiling</th><th>ADP</th><th>Edge</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function viewPlan(){
   const PLAN=[["RB",1],["WR",2],["WR",3],["RB",4],["WR",5],["WR",6],["RB",7],["WR",8],
               ["QB",9],["WR",10],["RB",11],["TE",12],["QB",13],["WR",14],["TE",15],
@@ -1946,11 +2123,18 @@ function render(){
   const v=$("#view");
   v.innerHTML = TAB==="board"?viewBoard():TAB==="playoff"?viewPlayoff():TAB==="stacks"?viewStacks():
                 TAB==="cuffs"?viewCuffs():TAB==="teams"?viewTeams():TAB==="news"?viewNews():
-                TAB==="calib"?viewCalib():TAB==="plan"?viewPlan():viewMethod();
+                TAB==="calib"?viewCalib():TAB==="plan"?viewPlan():TAB==="draft"?viewDraft():viewMethod();
 
   const q=$("#q");
   if(q){
     q.addEventListener("input",e=>{Q=e.target.value; const p=e.target.selectionStart; render(); const n=$("#q"); if(n){n.focus(); n.setSelectionRange(p,p);} });
+    if(TAB==="draft") q.addEventListener("keydown",e=>{
+      if(e.key!=="Enter") return;
+      e.preventDefault();
+      const t=Q.toLowerCase(); if(!t) return;
+      const hit=ROWS.find(x=>!DRAFT.taken[x.n] && x.n.toLowerCase().includes(t));
+      if(hit){ pickPlayer(hit.n, e.shiftKey); Q=""; render(); const n=$("#q"); if(n) n.focus(); }
+    });
   }
   v.querySelectorAll("[data-pos]").forEach(b=>b.addEventListener("click",()=>{FPOS=b.dataset.pos; render();}));
   v.querySelectorAll("th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
@@ -1959,6 +2143,21 @@ function render(){
   v.querySelectorAll("tr.row[data-n]").forEach(tr=>tr.addEventListener("click",()=>{
     OPEN = OPEN===tr.dataset.n?null:tr.dataset.n; render();
   }));
+  v.querySelectorAll("[data-take]").forEach(el=>el.addEventListener("click",ev=>{
+    ev.stopPropagation(); pickPlayer(el.dataset.take,false); render();
+  }));
+  v.querySelectorAll("[data-mine]").forEach(el=>el.addEventListener("click",ev=>{
+    ev.stopPropagation(); pickPlayer(el.dataset.mine,true); Q=""; render();
+  }));
+  const ds=$("#dslot");
+  if(ds) ds.addEventListener("change",()=>{ DRAFT.slot=clamp(parseInt(ds.value,10)||1,1,S.teams); draftSave(); render(); });
+  const un=$("#undo"); if(un) un.addEventListener("click",()=>{ undoPick(); render(); });
+  const rs=$("#resetdraft");
+  if(rs) rs.addEventListener("click",()=>{
+    if(confirm("Clear the draft board and start over?")){
+      DRAFT.taken={}; DRAFT.mine=[]; DRAFT.log=[]; draftSave(); render();
+    }
+  });
   const vo=$("#valonly");
   if(vo) vo.addEventListener("click",()=>{
     const on=vo.getAttribute("aria-pressed")==="true";
@@ -2021,6 +2220,7 @@ $("#themebtn").addEventListener("click",()=>{
   window.addEventListener("resize",sync);
 })();
 
+draftLoad();
 run(); render();
 
 /* sanity check — projections should land in plausible ranges */
