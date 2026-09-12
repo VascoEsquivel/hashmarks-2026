@@ -229,10 +229,14 @@ td.rk{font-family:var(--font-mono); color:var(--ink-3); font-size:12px; width:44
 .pos.WR{color:#6FB8E8; border-color:#2B4A63}
 .pos.QB{color:#E8B23A; border-color:#6B5220}
 .pos.TE{color:#D08CE8; border-color:#54325F}
+.pos.K{color:#A9B3C0; border-color:#404955}
+.pos.DST{color:#7FD8C8; border-color:#2C5A52}
 :root[data-theme="light"] .pos.RB{color:#3D6B1F;border-color:#B9D6A3}
 :root[data-theme="light"] .pos.WR{color:#1B5A85;border-color:#A8CDE4}
 :root[data-theme="light"] .pos.QB{color:#8A5F06;border-color:#E0C88C}
 :root[data-theme="light"] .pos.TE{color:#6C2E80;border-color:#DCB6E6}
+:root[data-theme="light"] .pos.K{color:#4E5A69;border-color:#C6CDD6}
+:root[data-theme="light"] .pos.DST{color:#12645A;border-color:#A2D8CE}
 .team{font-family:var(--font-mono); font-size:11px; color:var(--ink-3)}
 .flag{
   font-family:var(--font-mono); font-size:9px; letter-spacing:.05em; padding:1px 4px;
@@ -387,6 +391,10 @@ td.cvpos{white-space:nowrap}
         <div class="field"><label for="sWR">WR</label><input type="number" id="sWR" min="1" max="5" value="3" /></div>
         <div class="field"><label for="sTE">TE</label><input type="number" id="sTE" min="0" max="3" value="1" /></div>
       </div>
+      <div class="rowfields">
+        <div class="field"><label for="sK">K</label><input type="number" id="sK" min="0" max="2" value="1" /></div>
+        <div class="field"><label for="sDST">D/ST</label><input type="number" id="sDST" min="0" max="2" value="1" /></div>
+      </div>
       <div class="field"><label for="sFLEX">Flex spots</label><input type="number" id="sFLEX" min="0" max="3" value="1" /></div>
       <div class="field">
         <label>Playoff weeks scored</label>
@@ -455,6 +463,23 @@ td.cvpos{white-space:nowrap}
         <div class="field"><label for="emWR">WR <span class="v" id="emWR_v">1.00</span></label><input type="range" id="emWR" min="0.4" max="1.6" step="0.05" value="1" /></div>
         <div class="field"><label for="emTE">TE <span class="v" id="emTE_v">1.00</span></label><input type="range" id="emTE" min="0.4" max="1.6" step="0.05" value="1" /></div>
       </div>
+      <div class="rowfields">
+        <div class="field"><label for="emK">K <span class="v" id="emK_v">1.00</span></label><input type="range" id="emK" min="0.4" max="1.6" step="0.05" value="1" /></div>
+        <div class="field"><label for="emDST">D/ST <span class="v" id="emDST_v">1.00</span></label><input type="range" id="emDST" min="0.4" max="1.6" step="0.05" value="1" /></div>
+      </div>
+      <div class="field">
+        <label for="wRely">Reliability shrink <span class="v" id="wRely_v">1.00</span></label>
+        <input type="range" id="wRely" min="0" max="1" step="0.05" value="1" />
+      </div>
+      <p class="note">
+        How hard the model discounts a spread it cannot predict. Every position's 2025 scoring was
+        split odd weeks against even weeks and correlated: receiver and back come back at
+        <b>0.91</b> and <b>0.90</b>, kicker at <b>0.37</b>, team defense at <b>0.17</b>. At
+        <b>1</b> only the predictable share of each position's elite-to-replacement gap counts as
+        leverage, and kicker accuracy and defensive touchdowns &mdash; which carry forward at
+        &minus;0.26 and 0.00 &mdash; are not projected forward at all. At <b>0</b> last season is
+        taken at face value.
+      </p>
       <div id="levreadout" class="levbox"></div>
     </div>
 
@@ -830,7 +855,86 @@ const P = [
 {n:"Pat Freiermuth",t:"PIT",p:"TE",adp:194.2,gp:15.2,rr:.72,tg:.16,rz:.22,sp:78,wd:66,note:"League's lowest pressure rate means clean, on-schedule throws."},
 {n:"Terrance Ferguson",t:"LAR",p:"TE",adp:182.7,gp:15.2,rr:.66,tg:.13,rz:.18,sp:78,wd:70,tag:"Rookie",note:"McVay tight end behind a top-three line."},
 {n:"Gunnar Helm",t:"TEN",p:"TE",adp:181.3,gp:15.2,rr:.70,tg:.16,rz:.20,sp:76,wd:58,note:"Two plus playoff matchups on a bad offense."},
-{n:"Greg Dulcich",t:"MIA",p:"TE",adp:178.6,gp:15.0,rr:.66,tg:.14,rz:.18,sp:76,wd:62,note:"Slowik's scheme, 30th-ranked line."}
+{n:"Greg Dulcich",t:"MIA",p:"TE",adp:178.6,gp:15.0,rr:.66,tg:.14,rz:.18,sp:76,wd:62,note:"Slowik's scheme, 30th-ranked line."},
+
+/* ================================================================
+   KICKERS AND TEAM DEFENSES
+   Underdog Best Ball Mania does not draft these, so every rate below is
+   measured 2025 production from nflverse rather than a market consensus,
+   and the ADP column is an estimate of where a league that DOES draft them
+   takes them. Built by backtest/emit_kdst.py.
+   K    : fga FG attempts/gm, fgp FG%, lng share of attempts from 50+,
+          m4 share from 40-49, pat25 extra points/gm, g25 games kicked
+   DST  : sk sacks/gm, tk takeaways/gm, dtd defensive+return TD/gm,
+          pa25 points allowed/gm, ppg25 fantasy ppg actually scored
+   ================================================================ */
+/* ---------------- KICKERS ---------------- */
+{n:"Ka'imi Fairbairn",t:"HOU",p:"K",adp:188.0,gp:16.6,fga:3.20,fgp:0.917,lng:0.250,m4:0.333,pat25:1.87,g25:15,note:"3.20 FG attempts a game in 2025 at 92%, 25% of them from 50-plus. Held the job all season."},
+{n:"Jason Myers",t:"SEA",p:"K",adp:190.2,gp:16.6,fga:2.82,fgp:0.854,lng:0.229,m4:0.312,pat25:2.82,g25:17,note:"2.82 FG attempts a game in 2025 at 85%, 23% of them from 50-plus. Held the job all season."},
+{n:"Brandon Aubrey",t:"DAL",p:"K",adp:192.3,gp:16.6,fga:2.47,fgp:0.857,lng:0.405,m4:0.238,pat25:2.76,g25:17,note:"2.47 FG attempts a game in 2025 at 86%, 40% of them from 50-plus. Held the job all season."},
+{n:"Zane Gonzalez",t:"ATL",p:"K",adp:194.4,gp:16.6,fga:2.44,fgp:0.864,lng:0.364,m4:0.364,pat25:1.89,g25:9,fl:"q",note:"2.44 FG attempts a game in 2025 at 86%, 36% of them from 50-plus. Job is not locked - he handled only 9 games."},
+{n:"Eddy Pineiro",t:"SF",p:"K",adp:196.6,gp:16.6,fga:2.07,fgp:0.966,lng:0.241,m4:0.345,pat25:2.43,g25:14,note:"2.07 FG attempts a game in 2025 at 97%, 24% of them from 50-plus. Held the job all season."},
+{n:"Will Reichard",t:"MIN",p:"K",adp:198.8,gp:16.6,fga:2.19,fgp:0.943,lng:0.371,m4:0.200,pat25:1.94,g25:16,note:"2.19 FG attempts a game in 2025 at 94%, 37% of them from 50-plus. Held the job all season."},
+{n:"Cameron Dicker",t:"LAC",p:"K",adp:200.9,gp:16.6,fga:2.41,fgp:0.927,lng:0.146,m4:0.317,pat25:2.00,g25:17,note:"2.41 FG attempts a game in 2025 at 93%, 15% of them from 50-plus. Held the job all season."},
+{n:"Cam Little",t:"JAX",p:"K",adp:203.1,gp:16.6,fga:2.00,fgp:0.882,lng:0.294,m4:0.294,pat25:2.94,g25:17,note:"2.00 FG attempts a game in 2025 at 88%, 29% of them from 50-plus. Held the job all season."},
+{n:"Cairo Santos",t:"CHI",p:"K",adp:205.2,gp:16.6,fga:2.14,fgp:0.833,lng:0.200,m4:0.367,pat25:2.79,g25:14,note:"2.14 FG attempts a game in 2025 at 83%, 20% of them from 50-plus. Held the job all season."},
+{n:"Harrison Mevis",t:"LAR",p:"K",adp:207.3,gp:16.6,fga:1.44,fgp:0.923,lng:0.077,m4:0.462,pat25:4.33,g25:9,fl:"q",note:"1.44 FG attempts a game in 2025 at 92%, 8% of them from 50-plus. Job is not locked - he handled only 9 games."},
+{n:"Jake Bates",t:"DET",p:"K",adp:209.5,gp:16.6,fga:2.00,fgp:0.794,lng:0.235,m4:0.294,pat25:3.18,g25:17,fl:"q",note:"2.00 FG attempts a game in 2025 at 79%, 24% of them from 50-plus. Job is not locked - he made 79% of his attempts."},
+{n:"Harrison Butker",t:"KC",p:"K",adp:211.7,gp:16.6,fga:2.24,fgp:0.868,lng:0.211,m4:0.289,pat25:1.82,g25:17,note:"2.24 FG attempts a game in 2025 at 87%, 21% of them from 50-plus. Held the job all season."},
+{n:"Chase McLaughlin",t:"TB",p:"K",adp:213.8,gp:16.6,fga:2.24,fgp:0.842,lng:0.289,m4:0.211,pat25:1.88,g25:17,note:"2.24 FG attempts a game in 2025 at 84%, 29% of them from 50-plus. Held the job all season."},
+{n:"Chris Boswell",t:"PIT",p:"K",adp:215.9,gp:16.6,fga:1.88,fgp:0.844,lng:0.344,m4:0.344,pat25:2.47,g25:17,note:"1.88 FG attempts a game in 2025 at 84%, 34% of them from 50-plus. Held the job all season."},
+{n:"Andres Borregales",t:"NE",p:"K",adp:218.1,gp:16.6,fga:1.88,fgp:0.844,lng:0.125,m4:0.344,pat25:3.12,g25:17,note:"1.88 FG attempts a game in 2025 at 84%, 12% of them from 50-plus. Held the job all season."},
+{n:"Tyler Loop",t:"BAL",p:"K",adp:220.2,gp:16.6,fga:2.00,fgp:0.882,lng:0.118,m4:0.265,pat25:2.59,g25:17,note:"2.00 FG attempts a game in 2025 at 88%, 12% of them from 50-plus. Held the job all season."},
+{n:"Evan McPherson",t:"CIN",p:"K",adp:222.4,gp:16.6,fga:1.75,fgp:0.893,lng:0.286,m4:0.357,pat25:2.56,g25:16,note:"1.75 FG attempts a game in 2025 at 89%, 29% of them from 50-plus. Held the job all season."},
+{n:"Joey Slye",t:"TEN",p:"K",adp:224.6,gp:16.6,fga:2.19,fgp:0.800,lng:0.371,m4:0.257,pat25:1.62,g25:16,note:"2.19 FG attempts a game in 2025 at 80%, 37% of them from 50-plus. Held the job all season."},
+{n:"Riley Patterson",t:"MIA",p:"K",adp:226.7,gp:16.6,fga:1.81,fgp:0.931,lng:0.138,m4:0.379,pat25:2.12,g25:16,note:"1.81 FG attempts a game in 2025 at 93%, 14% of them from 50-plus. Held the job all season."},
+{n:"Michael Badgley",t:"IND",p:"K",adp:228.8,gp:16.6,fga:1.57,fgp:0.909,lng:0.273,m4:0.364,pat25:2.57,g25:7,fl:"q",note:"1.57 FG attempts a game in 2025 at 91%, 27% of them from 50-plus. Job is not locked - he handled only 7 games."},
+{n:"Nick Folk",t:"NYJ",p:"K",adp:231.0,gp:16.6,fga:1.81,fgp:0.966,lng:0.276,m4:0.241,pat25:1.38,g25:16,note:"1.81 FG attempts a game in 2025 at 97%, 28% of them from 50-plus. Held the job all season."},
+{n:"Brandon McManus",t:"GB",p:"K",adp:233.2,gp:16.6,fga:2.14,fgp:0.800,lng:0.167,m4:0.200,pat25:2.29,g25:14,note:"2.14 FG attempts a game in 2025 at 80%, 17% of them from 50-plus. Held the job all season."},
+{n:"Wil Lutz",t:"DEN",p:"K",adp:235.3,gp:16.6,fga:1.88,fgp:0.875,lng:0.156,m4:0.156,pat25:2.29,g25:17,note:"1.88 FG attempts a game in 2025 at 88%, 16% of them from 50-plus. Held the job all season."},
+{n:"Graham Gano",t:"NYG",p:"K",adp:237.4,gp:16.6,fga:2.00,fgp:0.900,lng:0.100,m4:0.200,pat25:1.80,g25:5,fl:"q",note:"2.00 FG attempts a game in 2025 at 90%, 10% of them from 50-plus. Job is not locked - he handled only 5 games."},
+{n:"Chad Ryland",t:"ARI",p:"K",adp:239.6,gp:16.6,fga:1.94,fgp:0.758,lng:0.303,m4:0.273,pat25:2.12,g25:17,fl:"q",note:"1.94 FG attempts a game in 2025 at 76%, 30% of them from 50-plus. Job is not locked - he made 76% of his attempts."},
+{n:"Matt Prater",t:"BUF",p:"K",adp:241.8,gp:16.6,fga:1.33,fgp:0.900,lng:0.100,m4:0.300,pat25:3.07,g25:15,note:"1.33 FG attempts a game in 2025 at 90%, 10% of them from 50-plus. Held the job all season."},
+{n:"Matt Gay",t:"WAS",p:"K",adp:243.9,gp:16.6,fga:1.90,fgp:0.684,lng:0.474,m4:0.263,pat25:2.20,g25:10,fl:"q",note:"1.90 FG attempts a game in 2025 at 68%, 47% of them from 50-plus. Job is not locked - he handled only 10 games and made 68%."},
+{n:"Andre Szmyt",t:"CLE",p:"K",adp:246.1,gp:16.6,fga:1.69,fgp:0.889,lng:0.222,m4:0.222,pat25:1.56,g25:16,note:"1.69 FG attempts a game in 2025 at 89%, 22% of them from 50-plus. Held the job all season."},
+{n:"Jake Elliott",t:"PHI",p:"K",adp:248.2,gp:16.6,fga:1.59,fgp:0.741,lng:0.296,m4:0.370,pat25:2.41,g25:17,fl:"q",note:"1.59 FG attempts a game in 2025 at 74%, 30% of them from 50-plus. Job is not locked - he made 74% of his attempts."},
+{n:"Daniel Carlson",t:"LV",p:"K",adp:250.3,gp:16.6,fga:1.80,fgp:0.815,lng:0.259,m4:0.296,pat25:1.40,g25:15,note:"1.80 FG attempts a game in 2025 at 81%, 26% of them from 50-plus. Held the job all season."},
+{n:"Blake Grupe",t:"NO",p:"K",adp:252.5,gp:16.6,fga:2.36,fgp:0.692,lng:0.231,m4:0.192,pat25:1.36,g25:11,fl:"q",note:"2.36 FG attempts a game in 2025 at 69%, 23% of them from 50-plus. Job is not locked - he handled only 11 games and made 69%."},
+{n:"Ryan Fitzgerald",t:"CAR",p:"K",adp:254.6,gp:16.6,fga:1.71,fgp:0.828,lng:0.172,m4:0.276,pat25:1.59,g25:17,note:"1.71 FG attempts a game in 2025 at 83%, 17% of them from 50-plus. Held the job all season."},
+
+/* ---------------- TEAM DEFENSES ---------------- */
+{n:"Seahawks D/ST",t:"SEA",p:"DST",adp:176.0,gp:17,sk:2.76,tk:1.47,dtd:0.294,pa25:16.1,ppg25:9.59,note:"2025: 2.76 sacks and 1.47 takeaways a game, 16.1 points allowed, 5 defensive or return scores."},
+{n:"Texans D/ST",t:"HOU",p:"DST",adp:178.6,gp:17,sk:2.76,tk:1.71,dtd:0.059,pa25:16.4,ppg25:8.65,note:"2025: 2.76 sacks and 1.71 takeaways a game, 16.4 points allowed, 1 defensive or return score."},
+{n:"Jaguars D/ST",t:"JAX",p:"DST",adp:181.2,gp:17,sk:1.88,tk:1.82,dtd:0.235,pa25:18.8,ppg25:8.53,note:"2025: 1.88 sacks and 1.82 takeaways a game, 18.8 points allowed, 4 defensive or return scores."},
+{n:"Broncos D/ST",t:"DEN",p:"DST",adp:183.8,gp:17,sk:4.00,tk:0.82,dtd:0.118,pa25:18.2,ppg25:8.18,note:"2025: 4.00 sacks and 0.82 takeaways a game, 18.2 points allowed, 2 defensive or return scores."},
+{n:"Rams D/ST",t:"LAR",p:"DST",adp:186.4,gp:17,sk:2.76,tk:1.47,dtd:0.118,pa25:18.6,ppg25:8.00,note:"2025: 2.76 sacks and 1.47 takeaways a game, 18.6 points allowed, 2 defensive or return scores."},
+{n:"Eagles D/ST",t:"PHI",p:"DST",adp:189.0,gp:17,sk:2.47,tk:1.24,dtd:0.176,pa25:18.8,ppg25:7.65,note:"2025: 2.47 sacks and 1.24 takeaways a game, 18.8 points allowed, 3 defensive or return scores."},
+{n:"Vikings D/ST",t:"MIN",p:"DST",adp:191.6,gp:17,sk:2.88,tk:1.24,dtd:0.059,pa25:18.1,ppg25:7.53,note:"2025: 2.88 sacks and 1.24 takeaways a game, 18.1 points allowed, 1 defensive or return score."},
+{n:"Falcons D/ST",t:"ATL",p:"DST",adp:194.2,gp:17,sk:3.35,tk:1.35,dtd:0.059,pa25:21.8,ppg25:7.29,note:"2025: 3.35 sacks and 1.35 takeaways a game, 21.8 points allowed, 1 defensive or return score."},
+{n:"Browns D/ST",t:"CLE",p:"DST",adp:196.8,gp:17,sk:3.12,tk:1.06,dtd:0.176,pa25:20.8,ppg25:7.29,note:"2025: 3.12 sacks and 1.06 takeaways a game, 20.8 points allowed, 3 defensive or return scores."},
+{n:"Steelers D/ST",t:"PIT",p:"DST",adp:199.4,gp:17,sk:2.82,tk:1.59,dtd:0.059,pa25:21.7,ppg25:7.24,note:"2025: 2.82 sacks and 1.59 takeaways a game, 21.7 points allowed, 1 defensive or return score."},
+{n:"Patriots D/ST",t:"NE",p:"DST",adp:202.0,gp:17,sk:2.00,tk:1.12,dtd:0.235,pa25:18.0,ppg25:7.12,note:"2025: 2.00 sacks and 1.12 takeaways a game, 18.0 points allowed, 4 defensive or return scores."},
+{n:"Bears D/ST",t:"CHI",p:"DST",adp:204.6,gp:17,sk:2.06,tk:1.94,dtd:0.118,pa25:23.4,ppg25:7.00,note:"2025: 2.06 sacks and 1.94 takeaways a game, 23.4 points allowed, 2 defensive or return scores."},
+{n:"Chargers D/ST",t:"LAC",p:"DST",adp:207.2,gp:17,sk:2.65,tk:1.35,dtd:0.000,pa25:18.7,ppg25:6.76,note:"2025: 2.65 sacks and 1.35 takeaways a game, 18.7 points allowed, no defensive or return scores."},
+{n:"Bills D/ST",t:"BUF",p:"DST",adp:209.8,gp:17,sk:2.12,tk:1.18,dtd:0.118,pa25:21.2,ppg25:6.24,note:"2025: 2.12 sacks and 1.18 takeaways a game, 21.2 points allowed, 2 defensive or return scores."},
+{n:"Saints D/ST",t:"NO",p:"DST",adp:212.4,gp:17,sk:2.59,tk:1.18,dtd:0.059,pa25:21.5,ppg25:6.00,note:"2025: 2.59 sacks and 1.18 takeaways a game, 21.5 points allowed, 1 defensive or return score."},
+{n:"Panthers D/ST",t:"CAR",p:"DST",adp:215.0,gp:17,sk:1.76,tk:1.24,dtd:0.118,pa25:21.6,ppg25:5.94,note:"2025: 1.76 sacks and 1.24 takeaways a game, 21.6 points allowed, 2 defensive or return scores."},
+{n:"Lions D/ST",t:"DET",p:"DST",adp:217.6,gp:17,sk:2.82,tk:1.12,dtd:0.059,pa25:23.8,ppg25:5.82,note:"2025: 2.82 sacks and 1.12 takeaways a game, 23.8 points allowed, 1 defensive or return score."},
+{n:"Buccaneers D/ST",t:"TB",p:"DST",adp:220.2,gp:17,sk:2.18,tk:1.35,dtd:0.118,pa25:23.1,ppg25:5.82,note:"2025: 2.18 sacks and 1.35 takeaways a game, 23.1 points allowed, 2 defensive or return scores."},
+{n:"Colts D/ST",t:"IND",p:"DST",adp:222.8,gp:17,sk:2.29,tk:1.24,dtd:0.059,pa25:23.1,ppg25:5.76,note:"2025: 2.29 sacks and 1.24 takeaways a game, 23.1 points allowed, 1 defensive or return score."},
+{n:"Dolphins D/ST",t:"MIA",p:"DST",adp:225.4,gp:17,sk:2.29,tk:1.18,dtd:0.059,pa25:23.5,ppg25:5.65,note:"2025: 2.29 sacks and 1.18 takeaways a game, 23.5 points allowed, 1 defensive or return score."},
+{n:"Ravens D/ST",t:"BAL",p:"DST",adp:228.0,gp:17,sk:1.76,tk:1.18,dtd:0.059,pa25:22.9,ppg25:5.18,note:"2025: 1.76 sacks and 1.18 takeaways a game, 22.9 points allowed, 1 defensive or return score."},
+{n:"Chiefs D/ST",t:"KC",p:"DST",adp:230.6,gp:17,sk:1.94,tk:0.82,dtd:0.000,pa25:18.6,ppg25:5.18,note:"2025: 1.94 sacks and 0.82 takeaways a game, 18.6 points allowed, no defensive or return scores."},
+{n:"Packers D/ST",t:"GB",p:"DST",adp:233.2,gp:17,sk:2.12,tk:0.82,dtd:0.000,pa25:20.7,ppg25:4.71,note:"2025: 2.12 sacks and 0.82 takeaways a game, 20.7 points allowed, no defensive or return scores."},
+{n:"49ers D/ST",t:"SF",p:"DST",adp:235.8,gp:17,sk:1.18,tk:0.94,dtd:0.059,pa25:20.9,ppg25:4.71,note:"2025: 1.18 sacks and 0.94 takeaways a game, 20.9 points allowed, 1 defensive or return score."},
+{n:"Bengals D/ST",t:"CIN",p:"DST",adp:238.4,gp:17,sk:2.00,tk:1.18,dtd:0.118,pa25:25.3,ppg25:4.47,note:"2025: 2.00 sacks and 1.18 takeaways a game, 25.3 points allowed, 2 defensive or return scores."},
+{n:"Raiders D/ST",t:"LV",p:"DST",adp:241.0,gp:17,sk:2.12,tk:0.94,dtd:0.000,pa25:23.8,ppg25:4.41,note:"2025: 2.12 sacks and 0.94 takeaways a game, 23.8 points allowed, no defensive or return scores."},
+{n:"Titans D/ST",t:"TEN",p:"DST",adp:243.6,gp:17,sk:2.47,tk:0.76,dtd:0.176,pa25:26.6,ppg25:4.41,note:"2025: 2.47 sacks and 0.76 takeaways a game, 26.6 points allowed, 3 defensive or return scores."},
+{n:"Commanders D/ST",t:"WAS",p:"DST",adp:246.2,gp:17,sk:2.47,tk:0.59,dtd:0.118,pa25:25.8,ppg25:4.29,note:"2025: 2.47 sacks and 0.59 takeaways a game, 25.8 points allowed, 2 defensive or return scores."},
+{n:"Giants D/ST",t:"NYG",p:"DST",adp:248.8,gp:17,sk:2.24,tk:0.88,dtd:0.059,pa25:24.3,ppg25:4.24,note:"2025: 2.24 sacks and 0.88 takeaways a game, 24.3 points allowed, 1 defensive or return score."},
+{n:"Cardinals D/ST",t:"ARI",p:"DST",adp:251.4,gp:17,sk:1.76,tk:1.12,dtd:0.000,pa25:26.9,ppg25:3.53,note:"2025: 1.76 sacks and 1.12 takeaways a game, 26.9 points allowed, no defensive or return scores."},
+{n:"Cowboys D/ST",t:"DAL",p:"DST",adp:254.0,gp:17,sk:2.00,tk:0.71,dtd:0.118,pa25:29.6,ppg25:3.12,note:"2025: 2.00 sacks and 0.71 takeaways a game, 29.6 points allowed, 2 defensive or return scores."},
+{n:"Jets D/ST",t:"NYJ",p:"DST",adp:256.6,gp:17,sk:1.53,tk:0.24,dtd:0.235,pa25:29.1,ppg25:2.71,note:"2025: 1.53 sacks and 0.24 takeaways a game, 29.1 points allowed, 4 defensive or return scores."}
 ];
 
 /* ================================================================
@@ -1054,10 +1158,11 @@ const NEWS = [
    4. MODEL
    ================================================================ */
 const S = {
-  ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, pw:15,
+  ppr:0.5, tep:0, teams:12, roster:18, sQB:1, sRB:2, sWR:3, sTE:1, sFLEX:1, sK:1, sDST:1, pw:15,
   wPlayoff:0.55, wSpike:0.35, wOL:1, wScheme:1, wVol:1, wTD:1, wPass:1, wInj:1,
   wPrior:0.30, priFull:0.72, wRange:1.00,
-  wBust:1.00, wTDreg:1.00, wCal:0.60, gamma:0.45, emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00
+  wBust:1.00, wTDreg:1.00, wCal:0.60, gamma:0.45, wRely:1.00,
+  emQB:1.00, emRB:1.00, emWR:1.00, emTE:1.00, emK:1.00, emDST:1.00
 };
 const DEF_S = Object.assign({}, S);
 
@@ -1078,7 +1183,9 @@ const HIST = {
   QB:{rec:0.0, p99:25.6, p90:22.4, typ:20.6, src:"Lamar Jackson 2024 — 25.6 half-PPR ppg"},
   RB:{rec:4.2, p99:23.9, p90:21.1, typ:18.6, src:"Christian McCaffrey 2025 — 21.5 half-PPR ppg"},
   WR:{rec:7.5, p99:23.4, p90:20.3, typ:17.9, src:"Puka Nacua 2025 — 19.4 half-PPR ppg"},
-  TE:{rec:7.0, p99:20.8, p90:17.5, typ:14.6, src:"Travis Kelce 2020 — 17.3 half-PPR ppg"}
+  TE:{rec:7.0, p99:20.8, p90:17.5, typ:14.6, src:"Travis Kelce 2020 — 17.3 half-PPR ppg"},
+  K:{rec:0.0,  p99:13.4, p90:11.4, typ:8.5,  src:"Ka'imi Fairbairn 2025 — 12.7 ppg on 3.2 attempts a game"},
+  DST:{rec:0.0, p99:12.2, p90:9.8,  typ:5.9,  src:"Seattle 2025 — 9.6 ppg, 16.1 allowed, five return scores"}
 };
 /* Restate the anchors in the league's actual scoring. */
 function histCap(pos){
@@ -1088,7 +1195,28 @@ function histCap(pos){
 /* Per-position calibration. Corrects the compounding optimism described above;
    derived by holding each position's projected leader at a realistic elite
    season rather than an all-time one. */
-const POSCAL = {QB:0.90, RB:1.00, WR:1.00, TE:1.00};
+const POSCAL = {QB:0.90, RB:1.00, WR:1.00, TE:1.00, K:1.00, DST:1.00};
+
+/* ---------- measured reliability ----------
+   Split-half correlation of 2025 per-game scoring: every player's odd weeks
+   against his even weeks, correlated across the position, then corrected to
+   full-season length. It answers the question a rank curve cannot — how much
+   of the gap between DST1 and DST16 is a real difference in defenses, and how
+   much is the same defense happening to return two kicks in September.
+
+   Receiver and back land at 0.91 and 0.90: nearly all of the spread is real.
+   Kicker is 0.37 and team defense is 0.17. Observed defensive scoring has a
+   standard deviation of 1.71 points a game; the part that is actually the
+   defense is 0.71. This is a within-season number, so it is an upper bound on
+   what you can predict a year ahead — the true draft-day edge is smaller still.
+   Computed by backtest/reliability.py against nflverse 2025 weekly data. */
+const RELY = {QB:0.735, RB:0.904, WR:0.908, TE:0.839, K:0.374, DST:0.170};
+const RELY_N = {QB:31, RB:88, WR:138, TE:70, K:28, DST:32};
+const SKILL = ["QB","RB","WR","TE"];
+/* Positions that are actually in this league, in board order. */
+function allPos(){ return SKILL.concat(S.sK>0?["K"]:[], S.sDST>0?["DST"]:[]); }
+function slots(){ return {QB:S.sQB,RB:S.sRB,WR:S.sWR,TE:S.sTE,K:S.sK,DST:S.sDST}; }
+const isKD = p => p==="K"||p==="DST";
 
 /* Soft ceiling. Values below `soft` pass through untouched; above it they
    asymptote toward `hard` and never reach it. This is what stops a 38-point
@@ -1122,6 +1250,8 @@ function regressTD(tdPerGame, touchesPerGame){
 function roleCert(pl){
   const share = pl.p==="RB" ? (ruOf(pl)||0)*1.55*0.70 + (tgOf(pl)||0)*3.30*0.30
               : pl.p==="QB" ? 0.88
+              : pl.p==="DST" ? 1.00                 // a defense cannot lose its job
+              : pl.p==="K"   ? (pl.fl==="q"?0.62:0.94)
               : (tgOf(pl)||0)*3.30;
   return clamp(share, 0.10, 1);
 }
@@ -1190,7 +1320,7 @@ function playoffScore(tm){
     sum+=g; games.push({opp:o,def:d,adj:+g.toFixed(1),cold:cold<0,dome:cold>0});
   });
   const mean=sum/opps.length;
-  return {z:clamp(mean/12,-1.2,1.2), mean:+mean.toFixed(1), games};
+  return {z:clamp(mean/12,-1.2,1.2), mean:+mean.toFixed(1), games, unit:"SAFPA"};
 }
 
 /* --- offensive line: composite rank + yards before contact --- */
@@ -1321,6 +1451,99 @@ function projTE(pl){
   ], extra:{tgts, rec}};
 }
 
+/* ---------------- kicker ----------------
+   Almost nothing about a kicker carries forward. Split-half tested on 2025:
+   field-goal attempts a game correlate 0.49 week-to-week, the share of attempts
+   from 50-plus 0.32, and accuracy comes back at -0.26 — no signal whatsoever.
+   So the model does NOT project kickers to repeat their percentages. Every
+   kicker is projected at the league accuracy bar, adjusted only for December
+   weather, and what separates them is volume: how often his offense reaches
+   field-goal range and how often it stalls once there. */
+const K_FGP=0.845, K_FGA=2.05, K_LNG=0.34, K_M40=0.30;
+/* How much of a 2025 deviation survives into 2026, measured per input rather
+   than assumed. backtest/components.py. */
+const CARRY={sk:0.589, pa:0.465, tk:0.285, dtd:0.00, fga:0.494, lng:0.323, fgp:0.00};
+const carry = k => CARRY[k] + (1-CARRY[k])*(1-clamp(S.wRely,0,1));
+
+function projK(pl){
+  const tm=teamOf(pl), t=T[tm]; if(!t) return null;
+  /* Volume expectation from the offense, then the kicker's own 2025 rate pulled
+     toward it by the measured carry-forward. */
+  const fgaBase = K_FGA + (t.ppg-22.8)*0.028;
+  const fga = clamp(fgaBase + (pl.fga-fgaBase)*carry("fga"), 1.0, 3.4);
+  const lng = clamp(K_LNG + (pl.lng-K_LNG)*carry("lng"), 0.05, 0.55);
+  const m40 = clamp(K_M40 + (pl.m4-K_M40)*carry("lng"), 0.10, 0.50);
+  const fgp = clamp(K_FGP + (pl.fgp-K_FGP)*carry("fgp"), 0.70, 0.95);
+  /* December venue is the one matchup effect that is real at this position. */
+  const cold = COLD.has(tm), wx = cold ? -0.020 : (t.dome ? 0.012 : 0);
+  const acc = clamp(fgp+wx, 0.68, 0.96);
+  const made = fga*acc;
+  const perMade = 5*lng + 4*m40 + 3*Math.max(0, 1-lng-m40);
+  const tds = t.ppg*0.108;                       // team touchdowns a game
+  const pat = tds*0.93*(0.80+0.20*S.wVol);
+  const ppg = (made*perMade - (fga-made) + pat)*POSCAL.K;
+  const spike = clamp(0.42*(lng*230) + 0.32*((fga-1.2)/2.2*100) + 0.26*((t.ppg-17.5)/11*100), 0, 100);
+  return {ppg, spike, parts:[
+    ["Attempt volume", clamp((fga-1.2)/2.2*100,0,100), fga.toFixed(2)+" FGA/gm"],
+    ["Long-range share", clamp(lng*230,0,100), (lng*100).toFixed(0)+"% from 50+"],
+    ["Offense scoring", clamp((t.ppg-18)/10*100,0,100), t.ppg.toFixed(1)+" ppg &middot; "+pat.toFixed(2)+" XP/gm"],
+    ["December venue", cold?18:(t.dome?90:55), cold?"cold and open":(t.dome?"indoors":"outdoor, mild")],
+    ["Accuracy (no forward signal)", clamp((acc-0.72)/0.24*100,0,100), (acc*100).toFixed(1)+"% league bar"],
+    ["Job security", pl.fl==="q"?35:88, pl.g25+" games kicked in 2025"]
+  ], extra:{fga, acc, lng, pat, made, perMade}};
+}
+
+/* ---------------- team defense ----------------
+   Same treatment, and the numbers are starker. Sacks a game carry at 0.59 and
+   points allowed at 0.47, so those are worth projecting. Takeaways manage 0.29.
+   Defensive and return touchdowns carry at 0.002 — the least predictive input
+   in this entire model — so every defense is projected at the league touchdown
+   rate, and the ones that returned five last year get no credit for it. That is
+   most of the reason a defense is never worth an early pick. */
+const D_SK=2.42, D_TK=1.16, D_TD=0.101, D_PA=21.9;
+/* Fitted to 2025: mean weekly points-allowed tier against mean points allowed. */
+const paTier = pa => 6.125 - 0.2460*pa;
+
+function projDST(pl){
+  const tm=teamOf(pl), t=T[tm]; if(!t) return null;
+  const sk = D_SK + (pl.sk  -D_SK)*carry("sk");
+  const tk = D_TK + (pl.tk  -D_TK)*carry("tk");
+  const td = D_TD + (pl.dtd -D_TD)*carry("dtd");
+  const pa = D_PA + (pl.pa25-D_PA)*carry("pa");
+  const ppg = (sk*1 + tk*2 + td*6 + paTier(pa) + 0.18)*POSCAL.DST;
+  const spike = clamp(0.40*((sk-1.6)/1.9*100) + 0.34*((tk-0.6)/1.1*100) + 0.26*((24-pa)/8*100), 0, 100);
+  return {ppg, spike, parts:[
+    ["Pass rush &mdash; carries 0.59", clamp((sk-1.4)/2.1*100,0,100), sk.toFixed(2)+" sacks/gm &middot; was "+pl.sk.toFixed(2)],
+    ["Points allowed &mdash; carries 0.47", clamp((28-pa)/10*100,0,100), pa.toFixed(1)+" allowed &middot; was "+pl.pa25.toFixed(1)],
+    ["Takeaways &mdash; carries 0.29", clamp((tk-0.5)/1.2*100,0,100), tk.toFixed(2)+"/gm &middot; was "+pl.tk.toFixed(2)],
+    ["Return scores &mdash; carries 0.00", 8, "league rate for every defense"],
+    ["2025 fantasy finish", clamp((pl.ppg25-2)/8*100,0,100), pl.ppg25.toFixed(1)+" ppg last year"]
+  ], extra:{sk, tk, td, pa, tier:paTier(pa)}};
+}
+
+/* Defensive playoff matchups run the other way round. A defense wants a bad
+   offense, a line that gives up pressure, and a home game — so SAFPA, which
+   measures generosity to fantasy offenses, is the wrong instrument entirely.
+   Scaled into the same units so one set of cards reads both. */
+function playoffScoreDST(tm){
+  const opps=pOpps(tm);
+  if(!opps.length) return {z:0, mean:0, games:[], unit:"opp offense"};
+  let sum=0; const games=[];
+  opps.forEach(o=>{
+    const away=o.startsWith("@"), on=stripAt(o), ot=T[on];
+    if(!ot){ games.push({opp:o, def:0, adj:0}); return; }
+    const weak  = (22.8-ot.ppg)*1.45;      // the opponent's offense is the whole story
+    const leaky = (ot.qbp-34.5)*0.16;      // pressure allowed turns into sacks
+    const venue = away ? -0.9 : 0.9;
+    const g = weak+leaky+venue;
+    sum+=g;
+    games.push({opp:o, def:+g.toFixed(1), adj:+g.toFixed(1), cold:false, dome:!!ot.dome});
+  });
+  const mean=sum/opps.length;
+  return {z:clamp(mean/10,-1.2,1.2), mean:+mean.toFixed(1), games, unit:"opp offense"};
+}
+
+
 /* ---------- situational prior ----------
    Collapses a player's two production modes into one number that leans on the
    full-strength state, then discounts the diminished sample by however much of
@@ -1384,7 +1607,12 @@ function replacementRanks(){
     QB: Math.round(S.sQB*n + n*0.35),
     RB: Math.round(S.sRB*n + flex*0.45 + n*0.60),
     WR: Math.round(S.sWR*n + flex*0.45 + n*0.80),
-    TE: Math.round(S.sTE*n + flex*0.08 + n*0.35)
+    TE: Math.round(S.sTE*n + flex*0.08 + n*0.35),
+    /* Nobody carries a third kicker or a third defense, so replacement sits
+       barely below the last starter. That tiny gap IS the argument against
+       spending anything on these positions. */
+    K:   Math.max(1, Math.round(S.sK*n   + n*0.25)),
+    DST: Math.max(1, Math.round(S.sDST*n + n*0.30))
   };
 }
 
@@ -1398,10 +1626,10 @@ function replacementRanks(){
    positional opinion — and converts it into a multiplier. `gamma` controls how
    hard the measurement is applied; 0 ignores it entirely, 1 applies it in full.
    The per-position emphasis dials sit on top for manual override. */
-let LEV={QB:1,RB:1,WR:1,TE:1}, LEVSTAT={}, SPIKE_PIV={QB:55,RB:55,WR:55,TE:55};
+let LEV={QB:1,RB:1,WR:1,TE:1,K:1,DST:1}, LEVSTAT={}, SPIKE_PIV={QB:55,RB:55,WR:55,TE:55,K:55,DST:55};
 function computeLeverage(raw){
-  const rep=replacementRanks(), edge={};
-  ["QB","RB","WR","TE"].forEach(pos=>{
+  const rep=replacementRanks(), edge={}, list=allPos();
+  list.forEach(pos=>{
     const s=raw.filter(x=>x.p===pos && !x.na).sort((a,b)=>b.ppg-a.ppg);
     if(!s.length){edge[pos]=1;return;}
     const top  = s.slice(0,3).reduce((a,b)=>a+b.ppg,0)/Math.min(3,s.length);
@@ -1409,15 +1637,30 @@ function computeLeverage(raw){
     const band = s.slice(Math.max(0,i-2), i+3);
     const base = band.length ? band.reduce((a,b)=>a+b.ppg,0)/band.length : s[s.length-1].ppg;
     // Scale-free: percentage edge, so 23-point QBs and 12-point TEs compare.
-    edge[pos] = base>0.5 ? (top/base - 1) : 0.2;
+    const gross = base>0.5 ? (top/base - 1) : 0.2;
+    /* Only the predictable share of that gap is leverage. A spread you cannot
+       see coming on draft day is hindsight, not an edge — which is why kicker
+       and defense collapse here even though their raw curves look respectable. */
+    const keep = 1-(1-(RELY[pos]||1))*clamp(S.wRely,0,1);
+    edge[pos] = gross*keep;
     LEVSTAT[pos]={top:+top.toFixed(1), base:+base.toFixed(1), at:rep[pos],
-                  pts:+(top-base).toFixed(1), pct:Math.round(edge[pos]*100)};
+                  pts:+(top-base).toFixed(1), pct:Math.round(gross*100),
+                  rely:RELY[pos]||1, real:Math.round(gross*keep*100), n:RELY_N[pos]||0};
   });
-  const vals=Object.values(edge), mean=vals.reduce((a,b)=>a+b,0)/vals.length || 1;
-  const em={QB:S.emQB,RB:S.emRB,WR:S.emWR,TE:S.emTE};
-  ["QB","RB","WR","TE"].forEach(pos=>{
-    LEV[pos]=Math.pow(Math.max(edge[pos],0.02)/mean, S.gamma)*em[pos];
-    LEVSTAT[pos].lev=+LEV[pos].toFixed(2);
+  /* Normalise against the skill positions only, so adding kicker and defense to
+     the pool can never move the receivers' multiplier. */
+  const ref=SKILL.map(p=>edge[p]).filter(v=>v!=null&&isFinite(v));
+  const mean=ref.reduce((a,b)=>a+b,0)/(ref.length||1) || 1;
+  const em={QB:S.emQB,RB:S.emRB,WR:S.emWR,TE:S.emTE,K:S.emK,DST:S.emDST};
+  list.forEach(pos=>{
+    /* `gamma` is held at 0.45 because the skill-position leverage measurement
+       partly double-counts the same spread that value over replacement already
+       uses. Kicker and defense leverage comes from an independent split-half
+       reliability test instead, so that damping does not apply to them and the
+       exponent is taken undamped — still zero when the user zeroes gamma. */
+    const g = isKD(pos) ? S.gamma/0.45 : S.gamma;
+    LEV[pos]=Math.pow(Math.max(edge[pos],0.02)/mean, g)*(em[pos]||1);
+    LEVSTAT[pos].lev=+LEV[pos].toFixed(3);
   });
 }
 
@@ -1432,12 +1675,16 @@ function tierCliffs(pos, depth){
 
 let ROWS=[];
 function run(){
-  const raw = P.map(pl=>{
-    const f = pl.p==="RB"?projRB:pl.p==="WR"?projWR:pl.p==="QB"?projQB:projTE;
+  /* Drop positions this league does not start. Leaving them in would rank
+     players against a replacement baseline that was never computed for them,
+     which is a silent NaN rather than a visible error. */
+  const raw = P.filter(pl=>allPos().indexOf(pl.p)>=0).map(pl=>{
+    const f = pl.p==="RB"?projRB:pl.p==="WR"?projWR:pl.p==="QB"?projQB:
+              pl.p==="K"?projK:pl.p==="DST"?projDST:projTE;
     const r = f(pl) || {ppg:0,spike:40,parts:[],extra:{}};
     const inj = 1 - (1 - clamp(pl.gp/17,0,1))*S.wInj;
     const gp = 17*clamp(inj,0,1);
-    const ps = playoffScore(teamOf(pl));
+    const ps = pl.p==="DST" ? playoffScoreDST(teamOf(pl)) : playoffScore(teamOf(pl));
 
     // Blend the scheme/volume projection with what the player has actually
     // produced when whole. Neither number alone is the answer.
@@ -1473,7 +1720,13 @@ function run(){
     WR:[[1,19.4],[3,15.7],[6,14.4],[12,12.1],[24,10.3],[36,8.9],[51,6.4],[75,4.6]],
     RB:[[1,21.5],[3,19.5],[6,16.8],[12,14.1],[24,11.1],[37,8.0],[55,4.8]],
     TE:[[1,14.9],[3,12.1],[6,9.8],[12,8.8],[17,7.9],[30,5.2]],
-    QB:[[1,22.0],[3,21.1],[6,20.6],[12,18.0],[16,17.1],[30,11.5]]
+    QB:[[1,22.0],[3,21.1],[6,20.6],[12,18.0],[16,17.1],[30,11.5]],
+    /* Kicker and defense are the observed 2025 curves SHRUNK by their measured
+       reliability — the spread you could have predicted, not the spread that
+       happened. Raw 2025 ran K1 12.7 down to K30 6.8 and DST1 9.6 down to
+       DST32 2.4. A third of that survives at kicker; a sixth of it on defense. */
+    K:[[1,10.1],[3,9.3],[6,9.0],[12,8.7],[18,8.4],[24,8.2],[32,7.9]],
+    DST:[[1,6.6],[3,6.5],[6,6.3],[12,6.2],[18,6.0],[24,5.8],[32,5.5]]
   };
   const refAt=(pos,r)=>{
     const c=REF[pos]; if(r<=c[0][0]) return c[0][1];
@@ -1485,7 +1738,7 @@ function run(){
     }
     return c[c.length-1][1];
   };
-  ["QB","RB","WR","TE"].forEach(pos=>{
+  allPos().forEach(pos=>{
     const g=raw.filter(x=>x.p===pos && !x.na).sort((a,b)=>b.ppg-a.ppg);
     if(g.length<6) return;
     const c=histCap(pos), w=clamp(S.wCal,0,1);
@@ -1497,7 +1750,7 @@ function run(){
   });
 
   const rep = replacementRanks(); const base={};
-  ["QB","RB","WR","TE"].forEach(pos=>{
+  allPos().forEach(pos=>{
     const s = raw.filter(x=>x.p===pos).sort((a,b)=>b.season-a.season);
     const i = clamp(rep[pos]-1, 0, s.length-1);
     base[pos] = s[i] ? s[i].season : 0;
@@ -1507,7 +1760,7 @@ function run(){
      formulas are built from different inputs and land on different means, so a
      single global pivot silently penalised QB and rewarded TE — a cross-position
      opinion that belongs in computeLeverage(), not here. */
-  ["QB","RB","WR","TE"].forEach(pos=>{
+  allPos().forEach(pos=>{
     const v=raw.filter(x=>x.p===pos && !x.na).map(x=>x.spike).sort((a,b)=>a-b);
     SPIKE_PIV[pos]= v.length ? v[Math.floor(v.length/2)] : 55;
   });
@@ -1515,7 +1768,9 @@ function run(){
   ROWS = raw.map(x=>{
     const vor = x.season - base[x.p];
     const spikeMult = 1 + S.wSpike*((x.spike-(SPIKE_PIV[x.p]||55))/100);
-    const poMult    = 1 + S.wPlayoff*x.ps.z*0.42;
+    /* A kicker barely moves with the opponent: a stingy defense means more
+       field goals but fewer extra points, and the two mostly cancel. */
+    const poMult    = 1 + S.wPlayoff*x.ps.z*0.42*(x.p==="K"?0.45:1);
     const lev       = LEV[x.p] || 1;
     // Leverage scales positive value only — a replacement-level quarterback
     // should not become an asset just because the position is discounted.
@@ -1527,7 +1782,12 @@ function run(){
     const o = outcomes(x);
     x.ceil=o.ceil; x.floor=o.floor; x.upPct=o.up; x.dnPct=o.dn;
     x.rank=i+1;
-    x.edge = Math.round(x.adp - x.rank);   // + = model likes them more than the room
+    /* Underdog does not draft kickers or defenses, so their ADP here is our own
+       estimate. Scoring an edge against a number we invented would be the model
+       grading its own homework — and it would paint a bright green "85 picks of
+       value" stripe on a position whose market convention is correct. */
+    x.noAdp = isKD(x.p) ? 1 : 0;
+    x.edge = x.noAdp ? 0 : Math.round(x.adp - x.rank);
     x.posRank = ROWS.filter(y=>y.p===x.p && y.bbv>=x.bbv).length;
   });
   return ROWS;
@@ -1556,18 +1816,19 @@ function chips(){
   const c=$("#statechips"); const n=ROWS.length;
   const wk = S.pw===14?"14–17":S.pw===16?"16–17":"15–17";
   c.innerHTML = `<span class="chip">Half PPR <b>${S.ppr}</b></span>
-  <span class="chip">${S.teams}-team &middot; <b>${S.sQB}/${S.sRB}/${S.sWR}/${S.sTE}+${S.sFLEX}</b></span>
+  <span class="chip">${S.teams}-team &middot; <b>${S.sQB}/${S.sRB}/${S.sWR}/${S.sTE}+${S.sFLEX}${S.sK>0?"/"+S.sK+"K":""}${S.sDST>0?"/"+S.sDST+"D":""}</b></span>
   <span class="chip">Playoffs <b>Wk ${wk}</b></span>
   <span class="chip">Pool <b>${n}</b></span>
-  <span class="chip">Data <b>Sep 9, 2026</b></span>
-  <span class="chip" style="border-color:var(--accent-dim);color:var(--accent)">Week 1 <b>kicks off tonight</b></span>`;
+  <span class="chip">Data <b>Sep 11, 2026</b></span>
+  <span class="chip" style="border-color:var(--accent-dim);color:var(--accent)">Week 1 <b>under way</b></span>`;
 
   const lb=$("#levreadout");
   if(lb){
-    const mx=Math.max(...["QB","RB","WR","TE"].map(p=>LEV[p]||1),1);
-    lb.innerHTML=["WR","RB","TE","QB"].map(p=>{
+    const order=["WR","RB","TE","QB","K","DST"].filter(p=>allPos().indexOf(p)>=0);
+    const mx=Math.max(...order.map(p=>LEV[p]||1),1);
+    lb.innerHTML=order.map(p=>{
       const st=LEVSTAT[p]||{}; const w=clamp((LEV[p]||1)/mx*100,3,100);
-      return `<div class="levrow" title="elite ${st.top} vs ${p}${st.at} replacement ${st.base} — a ${st.pct}% edge">
+      return `<div class="levrow" title="elite ${st.top} vs ${p}${st.at} replacement ${st.base} — a ${st.pct}% gap, ${st.real}% of it predictable">
         <b class="pos ${p}" style="padding:1px 3px">${p}</b>
         <span class="bar${(LEV[p]||1)>=1?" teal":""}"><i style="width:${w.toFixed(0)}%"></i></span>
         <span class="lv">${(LEV[p]||1).toFixed(2)}×</span></div>`;
@@ -1601,11 +1862,11 @@ function filtered(){
 
 function drawer(x){
   const t=T[teamOf(x)];
-  const maxPpg={RB:22,WR:19,QB:26,TE:14}[x.p];
+  const maxPpg={RB:22,WR:19,QB:26,TE:14,K:13,DST:11}[x.p];
   const g = x.ps.games.map(g=>`<div class="wkcard">
       <div class="k">${esc(g.opp.startsWith("@")?"AT":"VS")}</div>
       <div class="o">${esc(stripAt(g.opp))}</div>
-      <div class="g" style="color:${g.def>4?"var(--edge)":g.def<-6?"var(--warn)":"var(--ink-3)"}">${g.def>0?"+":""}${g.def.toFixed(1)} SAFPA</div>
+      <div class="g" style="color:${g.def>4?"var(--edge)":g.def<-6?"var(--warn)":"var(--ink-3)"}">${g.def>0?"+":""}${g.def.toFixed(1)} ${esc(x.ps.unit||"SAFPA")}</div>
       <div class="g" style="color:var(--ink-3)">${g.cold?"outdoor cold":g.dome?"indoors":"outdoor"}</div>
     </div>`).join("");
   const comps = x.parts.map(p=>`<div class="comprow"><span>${esc(p[0])}</span>${bar(clamp(p[1],0,100),100,p[1]>=70)}<span class="num">${esc(p[2])}</span></div>`).join("");
@@ -1615,8 +1876,8 @@ function drawer(x){
         <h3>${esc(x.n)}</h3>
         <div class="chips" style="margin:6px 0 10px">
           <span class="chip"><b>${x.p}${x.posRank}</b> overall <b>#${x.rank}</b></span>
-          <span class="chip">ADP <b>${x.adp.toFixed(1)}</b></span>
-          <span class="chip">Edge <b style="color:${x.edge>=12?"var(--edge)":x.edge<=-12?"var(--warn)":"var(--ink)"}">${x.edge>0?"+":""}${x.edge}</b></span>
+          <span class="chip"${isKD(x.p)?' title="Underdog Best Ball Mania does not draft kickers or defenses, so there is no market price — this is an estimate of where a league that does draft them takes it"':""}>ADP <b>${x.adp.toFixed(1)}${isKD(x.p)?" est":""}</b></span>
+          ${x.noAdp?'<span class="chip">Edge <b style="color:var(--ink-3)">n/a</b></span>':`<span class="chip">Edge <b style="color:${x.edge>=12?"var(--edge)":x.edge<=-12?"var(--warn)":"var(--ink)"}">${x.edge>0?"+":""}${x.edge}</b></span>`}
           ${x.est?'<span class="chip">splits <b>est</b></span>':""}
           ${x.tag?`<span class="chip"><b>${esc(x.tag)}</b></span>`:""}
         </div>
@@ -1629,12 +1890,16 @@ function drawer(x){
       <div class="metric"><div class="k">Positional leverage</div><div class="n" style="color:${(x.lev||1)>=1.05?"var(--edge)":(x.lev||1)<=0.9?"var(--warn)":"var(--ink)"}">${(x.lev||1).toFixed(2)}×</div><div class="d">${x.p} elite beats ${x.p}${(LEVSTAT[x.p]||{}).at} by ${(LEVSTAT[x.p]||{}).pct}%</div></div>
       ${x.age&&x.age.age?`<div class="metric"><div class="k">Age curve</div><div class="n" style="color:${x.age.f<0.95?"var(--warn)":"var(--ink)"}">${x.age.age}</div><div class="d">${x.age.f<1?((1-x.age.f)*100).toFixed(0)+"% decline haircut":"inside the curve"}</div></div>`:""}
       <div class="metric"><div class="k">Spike-week score</div><div class="n">${x.spike.toFixed(0)}</div><div class="d">${(x.spikeMult).toFixed(2)}× best-ball multiplier</div></div>
-      <div class="metric"><div class="k">Wk ${S.pw===14?"14":S.pw===16?"16":"15"}–17 matchups</div><div class="n" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</div><div class="d">mean opponent SAFPA &middot; ${(x.poMult).toFixed(2)}× multiplier</div></div>
-      ${t?`<div class="metric"><div class="k">Line &amp; scheme</div><div class="n">${t.olAvg.toFixed(1)}</div><div class="d">composite OL rank &middot; ${t.ybco} ybco &middot; ${t.qbp}% pressure</div></div>`:""}
-      ${t?`<div class="metric"><div class="k">Playcaller</div><div class="n" style="font-size:15px">${esc(t.pc)}</div><div class="d">${t.oz}% outside zone / ${t.iz}% inside zone${t.px?" (proxied)":""}</div></div>`:""}
+      <div class="metric"><div class="k">Wk ${S.pw===14?"14":S.pw===16?"16":"15"}–17 matchups</div><div class="n" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</div>      <div class="d">${x.p==="DST"?"mean opponent offense score":"mean opponent SAFPA"} &middot; ${(x.poMult).toFixed(2)}× multiplier</div></div>
+      ${t&&!isKD(x.p)?`<div class="metric"><div class="k">Line &amp; scheme</div><div class="n">${t.olAvg.toFixed(1)}</div><div class="d">composite OL rank &middot; ${t.ybco} ybco &middot; ${t.qbp}% pressure</div></div>`:""}
+      ${t&&!isKD(x.p)?`<div class="metric"><div class="k">Playcaller</div><div class="n" style="font-size:15px">${esc(t.pc)}</div><div class="d">${t.oz}% outside zone / ${t.iz}% inside zone${t.px?" (proxied)":""}</div></div>`:""}
       ${x.p==="RB"&&x.extra.touches?`<div class="metric"><div class="k">Touches &amp; TD rate</div><div class="n">${x.extra.touches.toFixed(1)}</div><div class="d">touch/gm &middot; ${(x.extra.tdRate*100).toFixed(2)}% td rate vs 3.63% league${x.extra.tdRaw>x.extra.tdAdj+0.02?" &middot; regressed from "+(x.extra.tdRaw/x.extra.touches*100).toFixed(2)+"%":""}</div></div>`:""}
       ${x.p==="RB"&&x.extra.ypc?`<div class="metric"><div class="k">Scheme-weighted YPC</div><div class="n">${x.extra.ypc.toFixed(2)}</div><div class="d">${x.oz} out / ${x.iz} in &middot; ${x.extra.delta>0?"+":""}${x.extra.delta} vs neutral split</div></div>`:""}
       ${x.hc?`<div class="metric"><div class="k">Handcuff to</div><div class="n" style="font-size:15px">${esc(x.hc)}</div><div class="d">contingent-value asset</div></div>`:""}
+      ${x.p==="K"&&x.extra.fga?`<div class="metric"><div class="k">Attempts &amp; range</div><div class="n">${x.extra.fga.toFixed(2)}</div><div class="d">FGA/gm &middot; ${(x.extra.lng*100).toFixed(0)}% from 50+ &middot; ${x.extra.perMade.toFixed(2)} pts a make</div></div>`:""}
+      ${x.p==="K"?`<div class="metric"><div class="k">2025 accuracy</div><div class="n" style="color:var(--ink-3)">${(x.fgp*100).toFixed(1)}%</div><div class="d">not carried forward &mdash; FG% split-half tests at &minus;0.26</div></div>`:""}
+      ${x.p==="DST"&&x.extra.sk?`<div class="metric"><div class="k">Projected defense</div><div class="n">${x.extra.sk.toFixed(2)}</div><div class="d">sacks/gm &middot; ${x.extra.tk.toFixed(2)} takeaways &middot; ${x.extra.pa.toFixed(1)} allowed</div></div>`:""}
+      ${x.p==="DST"?`<div class="metric"><div class="k">2025 fantasy finish</div><div class="n" style="color:var(--ink-3)">${x.ppg25.toFixed(1)}</div><div class="d">ppg last season &mdash; 17% of that gap carries forward</div></div>`:""}
     </div>
     <div>
       <div class="group"><h3>Range of outcomes</h3></div>
@@ -1675,7 +1940,7 @@ function viewBoard(){
     return `<th class="${c[2]||""}" data-sort="${c[0]}">${c[1]}${active?` <span class="dir">${SORT.d>0?"▲":"▼"}</span>`:""}</th>`;
   }).join("");
   const maxV=Math.max(...ROWS.map(r=>r.bbv),1);
-  const posMax={}; ["QB","RB","WR","TE"].forEach(p=>posMax[p]=Math.max(...ROWS.filter(r=>r.p===p).map(r=>r.ceil),1));
+  const posMax={}; allPos().forEach(p=>posMax[p]=Math.max(...ROWS.filter(r=>r.p===p).map(r=>r.ceil),1));
   let last=null, body="";
   rows.forEach(x=>{
     if(SORT.k==="rank"&&FPOS==="ALL"&&!Q){
@@ -1683,10 +1948,14 @@ function viewBoard(){
       if(tier!==last){ last=tier; body+=`<tr class="tierband"><td colspan="12">Round ${tier} &middot; picks ${(tier-1)*12+1}–${tier*12}</td></tr>`; }
     }
     const fl = x.fl==="out"?'<span class="flag out">out</span>':x.fl==="q"?'<span class="flag q">camp</span>':x.fl==="up"?'<span class="flag up">cleared</span>':"";
+    /* A kicker can carry real value over replacement and still be a terrible
+       pick here, because the whole position is untouched until the endgame.
+       Say so on the row rather than letting the rank number imply a round. */
+    const late = isKD(x.p) ? '<span class="flag q" title="the entire position is still on the board in the last two rounds — value over replacement is real, but you never have to pay this price for it">last 2 rds</span>' : "";
     body += `<tr class="row" data-n="${esc(x.n)}">
       <td class="stripe" style="background:${stripeColor(x.edge)}"></td>
       <td class="rk">${x.rank}</td>
-      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span> ${fl}${x.prior?'<span class="flag hist" title="has situational split data">hist</span>':""}</span></td>
+      <td class="l"><span class="pname"><b>${esc(x.n)}</b> <span class="pos ${x.p}">${x.p}${x.posRank}</span> <span class="team">${esc(x.t)}</span> ${fl}${late}${x.prior?'<span class="flag hist" title="has situational split data">hist</span>':""}</span></td>
       <td class="num" style="color:var(--ink-3)">${x.floor.toFixed(1)}</td>
       <td class="num" style="font-weight:600">${x.ppg.toFixed(1)}</td>
       <td class="num" style="color:var(--accent)">${x.ceil.toFixed(1)}</td>
@@ -1694,14 +1963,14 @@ function viewBoard(){
       <td class="num" style="color:${x.ps.mean>3?"var(--edge)":x.ps.mean<-4?"var(--warn)":"var(--ink-2)"}">${x.ps.mean>0?"+":""}${x.ps.mean}</td>
       <td>${bar(x.bbv,maxV,x.edge>=12)}</td>
       <td class="num" style="color:var(--ink-3)">${byeOf(x)||"&mdash;"}</td>
-      <td class="num" style="color:var(--ink-3)">${x.adp.toFixed(1)}</td>
-      <td class="val ${edgeCls(x.edge)}">${x.edge>0?"+":""}${x.edge}</td>
+      <td class="num" style="color:var(--ink-3)">${x.adp.toFixed(1)}${x.noAdp?"<span style=\"font-size:9px;opacity:.6\"> est</span>":""}</td>
+      <td class="val ${x.noAdp?"flat":edgeCls(x.edge)}">${x.noAdp?"&mdash;":(x.edge>0?"+":"")+x.edge}</td>
     </tr>`;
     if(OPEN===x.n) body += `<tr class="drawer"><td colspan="12">${drawer(x)}</td></tr>`;
   });
   return `<div class="toolbar">
       <input type="search" id="q" placeholder="Search player or team…" value="${esc(Q)}" />
-      ${["ALL","QB","RB","WR","TE"].map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
+      ${["ALL"].concat(allPos()).map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
       <span class="spacer"></span>
       <button class="pill" id="valonly" aria-pressed="false">Values only</button>
     </div>
@@ -1710,6 +1979,7 @@ function viewBoard(){
       <span><i style="background:var(--edge)"></i>Model ranks 12+ picks ahead of ADP</span>
       <span><i style="background:var(--warn)"></i>Model ranks 12+ picks behind ADP</span>
       <span><i style="background:var(--accent)"></i>Spike-week score above 72</span>
+      <span>Kicker and defense ADP is estimated &mdash; Underdog does not draft them</span>
       <span>Click any row for the full projection math</span>
     </div>`;
 }
@@ -1717,7 +1987,7 @@ function viewBoard(){
 function viewPlayoff(){
   const teams=Object.keys(T).map(tm=>{
     const ps=playoffScore(tm);
-    const players=ROWS.filter(r=>teamOf(r)===tm&&r.rank<=180).slice(0,4);
+    const players=ROWS.filter(r=>teamOf(r)===tm&&!isKD(r.p)&&r.rank<=180).slice(0,4);
     return {tm, ps, players};
   }).sort((a,b)=>b.ps.mean-a.ps.mean);
   const cards=teams.map(t=>`<div class="card">
@@ -1877,6 +2147,13 @@ function viewMethod(){
     <p class="note">Sourced: composite and Mike Clay offensive line ranks, yards before contact, pressure rate, outside/inside zone rates by playcaller, per-back zone YPC splits, receiver slot rates, Week 15–17 opponents, and defensive SAFPA. Estimated by hand: target shares, red-zone shares, route participation, goal-line shares, aDOT, all grades on a 0–100 scale, <b>and every situational production split</b> — those are scouted reconstructions of last season's game logs, not scraped data, which is why the weight on them is a slider you can zero out. Any player whose zone splits were unavailable is marked <code>est</code> in their drawer — mostly rookies and backups with no meaningful sample. Playcallers new to their team carry <code>proxy</code> zone rates from their previous stop.</p>
   </div>
   <div>
+    <div class="group"><h3>Kickers and defenses</h3></div>
+    <p>Underdog Best Ball Mania does not draft either one, so there is no market price and no ADP to argue with. Every input for both positions is measured 2025 production pulled from nflverse play-by-play rather than scouted, which makes them the best-sourced positions in the app and simultaneously the least predictable.</p>
+    <p>The governing measurement is split-half reliability &mdash; each season cut into odd and even weeks, the halves correlated, then corrected to full-season length. Receiver returns 0.91 and running back 0.90. Kicker returns 0.37 and team defense 0.17, meaning the observed 1.71 points a game of spread between defenses is really about 0.71.</p>
+    <p>Component by component it gets sharper. Sacks a game carry at <b>0.59</b> and points allowed at <b>0.47</b>, so both are projected forward. Takeaways manage 0.29. Defensive and return touchdowns carry at <b>0.002</b> and kicker accuracy at <b>&minus;0.26</b> &mdash; no signal at all. So the model refuses to project either one: every kicker gets the league accuracy bar adjusted only for December weather, and every defense gets the league touchdown rate. A defense that returned five scores last season is given no credit for it, because five return scores is the single least repeatable thing in this dataset.</p>
+    <p>What is left to separate them is volume and pressure. A kicker is worth what his offense stalls in field-goal range, so attempt rate, long-range share and dome-versus-cold December do the work. A defense is worth its pass rush and the offenses on its schedule &mdash; and because a defense wants the opposite of what a receiver wants, the Week&nbsp;15&ndash;17 score for D/ST is built from the opponent's own scoring and pressure allowed rather than from SAFPA, which measures generosity to fantasy offenses and would rank the matchups exactly backwards.</p>
+    <p>The reference curves both positions calibrate against are the 2025 curves shrunk by their measured reliability &mdash; the spread you could have predicted, not the spread that happened. Raw 2025 ran K1 12.7 down to K30 6.8; a third of that survives. Defense ran DST1 9.6 down to DST32 2.4; a sixth of it does.</p>
+
     <div class="group"><h3>Known limits</h3></div>
     <p class="note">Team points-per-game projections are hand-set, not derived from betting markets — swapping in live implied team totals would be the single highest-value upgrade. ADP is a mid-summer snapshot and drifts daily. Free agents with no team return no projection at all. And a model that says a player is 40 picks undervalued is making a claim about the market, not a promise about December.</p>
   </div>
@@ -1894,17 +2171,18 @@ function rosterPlayers(){
 }
 /* Weekly coverage: for each week, can the roster fill 1QB/2RB/3WR/1TE + flex? */
 function coverage(ps){
-  const need={QB:S.sQB, RB:S.sRB, WR:S.sWR, TE:S.sTE};
+  const need=slots(), list=allPos();
   const weeks=[];
   for(let wk=1;wk<=17;wk++){
-    const avail={QB:0,RB:0,WR:0,TE:0}, onBye=[], hurt=[];
+    const avail={}, onBye=[], hurt=[];
+    list.forEach(k=>avail[k]=0);
     ps.forEach(p=>{
       if(byeOf(p)===wk){ onBye.push(p); return; }
       if(p.fl==="out"){ hurt.push(p); return; }   // ruled out is not available
-      avail[p.p]++;
+      if(avail[p.p]!=null) avail[p.p]++;
     });
     const short=[];
-    Object.keys(need).forEach(k=>{ if(avail[k]<need[k]) short.push({pos:k, have:avail[k], want:need[k]}); });
+    list.forEach(k=>{ if((need[k]||0)>0 && avail[k]<need[k]) short.push({pos:k, have:avail[k], want:need[k]}); });
     // flex needs one spare body across RB/WR/TE
     const spare=(avail.RB-need.RB)+(avail.WR-need.WR)+(avail.TE-need.TE);
     const flexShort = S.sFLEX>0 && spare < S.sFLEX;
@@ -1919,7 +2197,8 @@ function viewTeam(){
   const cov=coverage(ps);
   const broken=cov.filter(w=>w.short.length);
   const flexOnly=cov.filter(w=>!w.short.length && w.flexShort);
-  const need={QB:S.sQB,RB:S.sRB,WR:S.sWR,TE:S.sTE};
+  const need=slots(), list=allPos();
+  const nStart=list.reduce((a,k)=>a+(need[k]||0),0)+S.sFLEX;
 
   // roster totals and playoff outlook
   const tot=ps.reduce((a,b)=>a+b.ppg,0);
@@ -1929,11 +2208,11 @@ function viewTeam(){
   const startSet=[];
 
   // starters-only strength: the best N at each slot is what actually scores
-  const byPos={}; ["QB","RB","WR","TE"].forEach(k=>byPos[k]=ps.filter(p=>p.p===k).sort((a,b)=>b.ppg-a.ppg));
-  const startersPPG=["QB","RB","WR","TE"].reduce((a,k)=>a+byPos[k].slice(0,need[k]).reduce((s,p)=>s+p.ppg,0),0);
+  const byPos={}; list.forEach(k=>byPos[k]=ps.filter(p=>p.p===k).sort((a,b)=>b.ppg-a.ppg));
+  const startersPPG=list.reduce((a,k)=>a+byPos[k].slice(0,need[k]).reduce((s,p)=>s+p.ppg,0),0);
   const flexPool=[...byPos.RB.slice(need.RB),...byPos.WR.slice(need.WR),...byPos.TE.slice(need.TE)].sort((a,b)=>b.ppg-a.ppg);
   const flexPPG=flexPool.slice(0,S.sFLEX).reduce((s,p)=>s+p.ppg,0);
-  ["QB","RB","WR","TE"].forEach(k=>startSet.push(...byPos[k].slice(0,need[k])));
+  list.forEach(k=>startSet.push(...byPos[k].slice(0,need[k])));
   startSet.push(...flexPool.slice(0,S.sFLEX));
   const startFloor=startSet.reduce((a,p)=>a+p.floor,0), startCeil=startSet.reduce((a,p)=>a+p.ceil,0);
 
@@ -1943,7 +2222,7 @@ function viewTeam(){
     .sort((a,b)=>b[1].length-a[1].length);
 
   // grid
-  const grid=["QB","RB","WR","TE"].map(pos=>{
+  const grid=list.map(pos=>{
     const cells=cov.map(w=>{
       const a=w.avail[pos], n=need[pos], bad=a<n, tight=a===n;
       return `<td class="cv ${bad?"bad":tight?"tight":"ok"}" title="wk${w.wk}: ${a} available, ${n} needed">${a}</td>`;
@@ -1951,7 +2230,7 @@ function viewTeam(){
     return `<tr><td class="l cvpos"><span class="pos ${pos}">${pos}</span> <span class="team">need ${need[pos]}</span></td>${cells}</tr>`;
   }).join("");
 
-  const rosterRows=["QB","RB","WR","TE"].map(pos=>{
+  const rosterRows=list.map(pos=>{
     if(!byPos[pos].length) return "";
     return byPos[pos].map((p,i)=>{
       const starter=i<need[pos];
@@ -1969,30 +2248,54 @@ function viewTeam(){
   }).join("");
 
   // which available players would patch each hole
-  const fixes=broken.map(w=>{
-    return w.short.map(sh=>{
-      const cands=ROWS.filter(x=>!DRAFT.taken[x.n] && x.p===sh.pos && byeOf(x)!==w.wk && x.fl!=="out")
-        .sort((a,b)=>a.rank-b.rank).slice(0,3);
+  /* Group the holes by position before rendering. Owning zero kickers makes all
+     seventeen weeks "short", and seventeen identical cards is noise rather than
+     information — that is one problem, stated once. */
+  const holeBy={};
+  broken.forEach(w=>w.short.forEach(sh=>{ (holeBy[sh.pos]=holeBy[sh.pos]||[]).push({w, sh}); }));
+  const freeAgents=(pos,notWk,n)=>ROWS
+    .filter(x=>!DRAFT.taken[x.n] && x.p===pos && x.fl!=="out" && (notWk==null || byeOf(x)!==notWk))
+    .sort((a,b)=>a.rank-b.rank).slice(0,n);
+
+  const fixes=Object.keys(holeBy).map(pos=>{
+    const hits=holeBy[pos], owned=(byPos[pos]||[]).length, want=need[pos];
+    if(owned===0){
+      const c=freeAgents(pos,null,4);
+      return `<div class="card" style="border-color:var(--warn)">
+        <div class="meta">${pos} &middot; none rostered &middot; all ${hits.length} weeks</div>
+        <h4 style="margin-bottom:6px">No ${pos} on this roster at all</h4>
+        <p style="margin-bottom:8px">A starting slot with nobody in it scores zero every week of the season, not a low number.${isKD(pos)?` Best ball never sets a lineup, so there is no streaming your way out of it — the slot stays empty until you draft one.`:""} You need ${want}.</p>
+        ${c.length?`<div class="kv"><span>Best available</span><span>${c.map(x=>esc(x.n)+" ("+x.t+")").join(", ")}</span></div>`:""}
+      </div>`;
+    }
+    return hits.map(({w, sh})=>{
+      const cands=freeAgents(sh.pos, w.wk, 3);
       const clash=ROWS.filter(x=>!DRAFT.taken[x.n] && x.p===sh.pos && byeOf(x)===w.wk)
         .sort((a,b)=>a.rank-b.rank).slice(0,2);
       return `<div class="card" style="border-color:var(--warn)">
         <div class="meta">Week ${w.wk} &middot; ${sh.pos} ${sh.have}/${sh.want}</div>
         <h4 style="margin-bottom:6px">Empty ${sh.pos} slot in week ${w.wk}</h4>
-        <p style="margin-bottom:8px">${w.onBye.length?`On bye: ${w.onBye.map(p=>esc(p.n)).join(", ")}. `:""}${w.hurt.length?`Ruled out: ${w.hurt.map(p=>esc(p.n)).join(", ")}. `:""}A one-slot position with nobody to fill it scores zero, not a low number. The draft simulation put the cost of these weeks at roughly 86 points a season.</p>
+        <p style="margin-bottom:8px">${w.onBye.length?`On bye: ${w.onBye.map(p=>esc(p.n)).join(", ")}. `:""}${w.hurt.length?`Ruled out: ${w.hurt.map(p=>esc(p.n)).join(", ")}. `:""}A one-slot position with nobody to fill it scores zero, not a low number. The draft simulation put the cost of these weeks at roughly 86 points a season.${isKD(sh.pos)?` One ${sh.pos} is not a roster — best ball never lets you stream, so his bye week was a guaranteed zero the day you drafted him.`:""}</p>
         ${cands.length?`<div class="kv"><span>Patches it</span><span>${cands.map(c=>esc(c.n)+" ("+c.t+")").join(", ")}</span></div>`:""}
         ${clash.length?`<div class="kv"><span style="color:var(--warn)">Does NOT patch it &mdash; same bye</span><span>${clash.map(c=>esc(c.n)).join(", ")}</span></div>`:""}
       </div>`;
     }).join("");
   }).join("");
 
+  /* Naming the position beats listing seventeen week numbers. */
+  const missingPos=allPos().filter(p=>(need[p]||0)>0 && !(byPos[p]||[]).length);
+  const brokenLabel = !broken.length ? "every week fields a legal lineup"
+    : missingPos.length ? "no "+missingPos.join(", no ")+" on the roster"
+    : broken.map(w=>"wk"+w.wk).join(", ");
+
   const swing=[...ps].sort((a,b)=>(b.ceil-b.floor)-(a.ceil-a.floor)).slice(0,3);
 
   return `<div class="dgrid" style="margin-bottom:18px">
-      <div class="metric"><div class="k">Roster</div><div class="n">${ps.length}<span style="font-size:13px;color:var(--ink-3)">/${S.roster}</span></div><div class="d">${["QB","RB","WR","TE"].map(k=>k+" "+byPos[k].length).join(" &middot; ")}</div></div>
-      <div class="metric"><div class="k">Starting lineup</div><div class="n">${(startersPPG+flexPPG).toFixed(1)}</div><div class="d">proj pts/week from your best ${S.sQB+S.sRB+S.sWR+S.sTE+S.sFLEX}</div></div>
-      <div class="metric" style="${broken.length?"border-color:var(--warn)":""}"><div class="k">Weeks with an empty slot</div><div class="n" style="color:${broken.length?"var(--warn)":"var(--edge)"}">${broken.length}</div><div class="d">${broken.length?broken.map(w=>"wk"+w.wk).join(", "):"every week fields a legal lineup"}</div></div>
+      <div class="metric"><div class="k">Roster</div><div class="n">${ps.length}<span style="font-size:13px;color:var(--ink-3)">/${S.roster}</span></div><div class="d">${list.map(k=>k+" "+byPos[k].length).join(" &middot; ")}</div></div>
+      <div class="metric"><div class="k">Starting lineup</div><div class="n">${(startersPPG+flexPPG).toFixed(1)}</div><div class="d">proj pts/week from your best ${nStart}</div></div>
+      <div class="metric" style="${broken.length?"border-color:var(--warn)":""}"><div class="k">Weeks with an empty slot</div><div class="n" style="color:${broken.length?"var(--warn)":"var(--edge)"}">${broken.length}</div><div class="d">${brokenLabel}</div></div>
       <div class="metric"><div class="k">Wk 15&ndash;17 outlook</div><div class="n" style="color:${poMean>2?"var(--edge)":poMean<-2?"var(--warn)":"var(--ink)"}">${poMean>0?"+":""}${poMean.toFixed(1)}</div><div class="d">mean opponent SAFPA across the roster</div></div>
-      <div class="metric"><div class="k">Starting-lineup range</div><div class="n" style="font-size:16px">${startFloor.toFixed(0)}&ndash;${startCeil.toFixed(0)}</div><div class="d">pts/week across your best ${S.sQB+S.sRB+S.sWR+S.sTE+S.sFLEX}, floor to ceiling</div></div>
+      <div class="metric"><div class="k">Starting-lineup range</div><div class="n" style="font-size:16px">${startFloor.toFixed(0)}&ndash;${startCeil.toFixed(0)}</div><div class="d">pts/week across your best ${nStart}, floor to ceiling</div></div>
       <div class="metric"><div class="k">Team concentration</div><div class="n" style="font-size:16px">${stacks.length?stacks.map(([t,v])=>t+"&times;"+v.length).join(" "):"none"}</div><div class="d">${stacks.length?"correlated weeks, up and down":"no doubled-up offenses"}</div></div>
     </div>
 
@@ -2017,11 +2320,44 @@ function viewTeam(){
    every pick against the roster shape the simulation produced.
    ================================================================ */
 const DRAFT = {slot:6, taken:{}, mine:[], log:[]};
-const PLAN_COUNTS = {RB:4, WR:8, QB:3, TE:3};
-// The shape the simulation produced, round by round.
-const PLAN_SEQ = ['RB','WR','WR','RB','WR','WR','RB','WR','QB','WR','RB','TE','QB','WR','TE','QB','WR','TE'];
+/* The shape the simulation produced was 4 RB / 8 WR / 3 QB / 3 TE across
+   eighteen rounds, with no kicker or defense because Underdog does not use
+   them. When the league does, they are one-slot positions with bye weeks and
+   best ball never lets you stream — so a single kicker is a guaranteed zero in
+   his bye week. Two of each is the covered shape; the trim order below gives up
+   the SECOND kicker and defense before it touches the receivers, because one
+   bye-week zero costs less than three fewer receivers do. */
+const PLAN_BASE  = {RB:4, WR:8, QB:3, TE:3};
+const PLAN_FLOOR = {RB:3, WR:5, QB:2, TE:2, K:1, DST:1};
+const PLAN_TRIM  = ["K","DST","WR","WR","TE","RB","WR","QB","WR","RB"];
+function planCounts(){
+  const c=Object.assign({}, PLAN_BASE, {K:S.sK>0?2:0, DST:S.sDST>0?2:0});
+  const floor=Object.assign({}, PLAN_FLOOR, {K:S.sK>0?1:0, DST:S.sDST>0?1:0});
+  const tot=()=>Object.keys(c).reduce((a,k)=>a+c[k],0);
+  for(let i=0; tot()>S.roster && i<60; i++){
+    const p=PLAN_TRIM[i%PLAN_TRIM.length];
+    if(c[p]>floor[p]) c[p]--;
+  }
+  for(let i=0; tot()<S.roster && i<24; i++) c.WR++;
+  return c;
+}
+/* Round-by-round order. Kicker and defense are appended last, always. */
+function planSeq(){
+  const left=planCounts(), seq=[];
+  const base=['RB','WR','WR','RB','WR','WR','RB','WR','QB','WR','RB','TE','QB','WR','TE','QB','WR','TE'];
+  base.forEach(p=>{ if(left[p]>0){ seq.push(p); left[p]--; } });
+  ['RB','WR','TE','QB'].forEach(p=>{ while(left[p]>0){ seq.push(p); left[p]--; } });
+  while(left.DST>0 || left.K>0){
+    if(left.DST>0){ seq.push('DST'); left.DST--; }
+    if(left.K>0){ seq.push('K'); left.K--; }
+  }
+  return seq;
+}
 const QB_WINDOW = [7,9];          // measured optimum for the first quarterback
 const TE_WINDOW = [10,12];
+/* First round it is defensible to spend a pick on a one-slot, low-spread
+   position. Anything earlier is buying a gap the data says you cannot predict. */
+function kdWindow(){ return Math.max(4, S.roster-3); }
 
 function draftSave(){ try{ localStorage.setItem('hm_draft', JSON.stringify(DRAFT)); }catch(e){} }
 function draftLoad(){
@@ -2030,8 +2366,8 @@ function draftLoad(){
   }catch(e){}
 }
 const draftedCount = ()=>Object.keys(DRAFT.taken).length;
-const myCounts = ()=>{ const c={QB:0,RB:0,WR:0,TE:0};
-  DRAFT.mine.forEach(n=>{ const p=ROWS.find(r=>r.n===n); if(p) c[p.p]++; }); return c; };
+const myCounts = ()=>{ const c={}; allPos().forEach(p=>c[p]=0);
+  DRAFT.mine.forEach(n=>{ const p=ROWS.find(r=>r.n===n); if(p && c[p.p]!=null) c[p.p]++; }); return c; };
 /* Snake order: which overall pick is mine in a given round. */
 function myPickNo(round){
   const t=S.teams, s=clamp(DRAFT.slot,1,t);
@@ -2058,10 +2394,10 @@ function undoPick(){
 
 /* How badly each position needs bodies, given the plan and rounds remaining. */
 function positionNeed(){
-  const c=myCounts(), left=Math.max(0, S.roster-DRAFT.mine.length), need={};
-  ["QB","RB","WR","TE"].forEach(pos=>{
-    const deficit=Math.max(0, PLAN_COUNTS[pos]-c[pos]);
-    need[pos]={have:c[pos], target:PLAN_COUNTS[pos], deficit,
+  const c=myCounts(), left=Math.max(0, S.roster-DRAFT.mine.length), need={}, plan=planCounts();
+  allPos().forEach(pos=>{
+    const deficit=Math.max(0, (plan[pos]||0)-c[pos]);
+    need[pos]={have:c[pos], target:plan[pos]||0, deficit,
                urgency: left>0 ? deficit/left : (deficit>0?1:0)};
   });
   return {need, left, counts:c};
@@ -2069,11 +2405,24 @@ function positionNeed(){
 
 /* Recommendation: model value, tilted by what the roster still owes. */
 function recommend(){
-  const {need}=positionNeed(), r=myRound();
-  const avail=ROWS.filter(x=>!DRAFT.taken[x.n] && x.bbv>0);
+  const {need,left}=positionNeed(), r=myRound(), seq=planSeq();
+  const planPos = seq[Math.min(r,seq.length)-1];
+  /* Once what the roster still owes equals the picks it has left, value stops
+     being the question. A kicker is worth a fraction of a running back and it
+     does not matter — you have one slot and one pick, and an empty slot scores
+     zero. So forced positions sort above everything, and the position the plan
+     names this round sorts above the other forced ones. */
+  /* Only the low-count slots can strand you: a flex covers a missing receiver,
+     nothing covers a missing kicker. Force the board once the picks remaining
+     are all spoken for by those positions — not merely because the plan has a
+     target for every round, which is true from the first pick onward. */
+  const oneSlot = ["QB","TE","K","DST"].filter(p=>allPos().indexOf(p)>=0 && (slots()[p]||0)>0);
+  const owed = oneSlot.reduce((a,p)=>a+(need[p]?need[p].deficit:0),0);
+  const forced = left>0 && owed>=left;
+  const avail=ROWS.filter(x=>!DRAFT.taken[x.n] && need[x.p] &&
+                             (x.bbv>0 || need[x.p].deficit>0));
   return avail.map(x=>{
     const nd=need[x.p];
-    const planPos = PLAN_SEQ[Math.min(r,PLAN_SEQ.length)-1];
     let mult=1+Math.min(nd.urgency,1)*0.85;
     let why=[];
     if(x.p===planPos && nd.deficit>0){ mult*=1.9; why.push("the plan calls for "+x.p+" here"); }
@@ -2084,11 +2433,21 @@ function recommend(){
       else if(r<=QB_WINDOW[1]+2 && nd.deficit>0){ mult*=1.25; why.push("inside the QB window"); }
     }
     if(x.p==="TE" && r<TE_WINDOW[0]-2 && nd.deficit>0 && x.posRank>2){ mult*=0.45; why.push("mid-tier TE, wait"); }
+    /* Kicker and defense: the measured elite-to-replacement gap is under a point
+       a game once you strip out what you cannot predict. Any pick before the
+       last few rounds is worse than free. */
+    if(isKD(x.p)){
+      const open=kdWindow();
+      if(r<open){ mult*=0.05; why.length=0; why.push(x.p+" costs nothing later"); }
+      else if(nd.deficit>0){ mult*=2.4; why.push("last rounds — take your "+x.p); }
+    }
     if(nd.urgency>0.62 && nd.deficit>0){ mult*=1.35; why.push("running out of rounds to fill "+x.p); }
     if(x.ps.mean>=5) why.push("Wk15–17 "+(x.ps.mean>0?"+":"")+x.ps.mean);
-    if(x.edge>=15) why.push("+"+x.edge+" vs ADP");
-    return {x, s:x.bbv*mult, why};
-  }).sort((a,b)=>b.s-a.s);
+    if(x.edge>=15 && !x.noAdp) why.push("+"+x.edge+" vs ADP");
+    const must = forced && nd.deficit>0 ? (x.p===planPos?2:1) : 0;
+    if(must) why.unshift(nd.deficit>=left?"must fill or start a week empty":"no rounds left to spare");
+    return {x, s:x.bbv*mult, must, why};
+  }).sort((a,b)=>(b.must-a.must) || (b.s-a.s));
 }
 
 function viewDraft(){
@@ -2104,7 +2463,7 @@ function viewDraft(){
   const last=DRAFT.log.slice(-12).map(l=>{const p=ROWS.find(x=>x.n===l.n);return p&&p.p;}).filter(Boolean);
   const run={}; last.forEach(p=>run[p]=(run[p]||0)+1);
 
-  const needCards=["RB","WR","QB","TE"].map(pos=>{
+  const needCards=["RB","WR","QB","TE","K","DST"].filter(p=>allPos().indexOf(p)>=0).map(pos=>{
     const n=need[pos], pct=clamp(n.have/n.target*100,0,100);
     const hot=n.urgency>0.62 && n.deficit>0;
     return `<div class="metric" style="${hot?"border-color:var(--warn)":""}">
@@ -2120,7 +2479,7 @@ function viewDraft(){
       <td class="num">${c.x.ppg.toFixed(1)}</td>
       <td class="num" style="color:var(--accent)">${c.x.ceil.toFixed(1)}</td>
       <td class="num" style="color:var(--ink-3)">${c.x.adp.toFixed(0)}</td>
-      <td class="l" style="color:var(--ink-3);font-size:11px">${esc(c.why.slice(0,2).join(" &middot; "))||"best available"}</td>
+      <td class="l" style="color:var(--ink-3);font-size:11px">${c.why.slice(0,2).map(esc).join(" &middot; ")||"best available"}</td>
       <td><button class="pill mine" data-mine="${esc(c.x.n)}">Draft</button></td>
     </tr>`).join("");
 
@@ -2136,7 +2495,7 @@ function viewDraft(){
         <button class="pill mine" data-mine="${esc(x.n)}">Mine</button></td>
     </tr>`).join("");
 
-  const roster=["QB","RB","WR","TE"].map(pos=>{
+  const roster=allPos().map(pos=>{
     const ps=DRAFT.mine.map(n=>ROWS.find(x=>x.n===n)).filter(x=>x&&x.p===pos);
     if(!ps.length) return "";
     return `<div class="kv"><span><span class="pos ${pos}">${pos}</span> ${ps.map(p=>esc(p.n)).join(", ")}</span><span>${ps.reduce((a,b)=>a+b.ppg,0).toFixed(1)}</span></div>`;
@@ -2160,13 +2519,14 @@ function viewDraft(){
     <p class="note" style="margin:0 0 14px">${gate}</p>
     <div class="dgrid" style="margin-bottom:18px">${needCards}</div>
 
-    ${(()=>{const pp=PLAN_SEQ[Math.min(r,PLAN_SEQ.length)-1], nd=need[pp];
+    ${(()=>{const sq=planSeq(), pp=sq[Math.min(r,sq.length)-1], nd=need[pp];
        const best=recs.filter(c=>c.x.p===pp)[0];
        if(!nd || nd.deficit===0) return "";
        return `<div class="card" style="border-color:var(--accent);margin-bottom:18px">
          <div class="meta">Round ${r} &middot; the plan</div>
          <h4 style="margin-bottom:6px">Take a <span class="pos ${pp}" style="font-size:13px;padding:2px 6px">${pp}</span></h4>
-         <p style="margin-bottom:8px">${pp==="QB"?`This is the window. Across 300 simulated drafts, taking your first quarterback in rounds 7&ndash;9 beat taking one in round 3 by 59 points and more than doubled the win rate. You still need ${nd.deficit}.`
+         <p style="margin-bottom:8px">${isKD(pp)?`Now, and not before. The gap from the best ${pp} to the one still sitting there in the last round is under a point a game once you remove the part of last season that does not carry forward. You need ${nd.deficit}.`
+           :pp==="QB"?`This is the window. Across 300 simulated drafts, taking your first quarterback in rounds 7&ndash;9 beat taking one in round 3 by 59 points and more than doubled the win rate. You still need ${nd.deficit}.`
            :pp==="TE"?`Tight end falls off a cliff after the top few and then goes flat. You need ${nd.deficit} more, and late is fine &mdash; empty is not.`
            :`You are ${nd.deficit} short of the ${nd.target} the winning shape carries.`}</p>
          ${best?`<div class="kv" style="align-items:center"><span>Best available &mdash; <b>${esc(best.x.n)}</b> <span class="team">${esc(best.x.t)}</span> &middot; ${best.x.ppg.toFixed(1)} proj &middot; ADP ${best.x.adp.toFixed(0)}</span><button class="pill mine" data-mine="${esc(best.x.n)}">Draft</button></div>`:""}
@@ -2180,20 +2540,20 @@ function viewDraft(){
     <div class="group"><h3>Board &mdash; ${avail.length} available</h3></div>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Type a name, press Enter to mark taken…" value="${esc(Q)}" />
-      ${["ALL","QB","RB","WR","TE"].map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
+      ${["ALL"].concat(allPos()).map(p=>`<button class="pill" data-pos="${p}" aria-pressed="${FPOS===p}">${p}</button>`).join("")}
     </div>
     <div class="tablewrap"><table><thead><tr><th class="stripe"></th><th class="l">Player</th><th>Proj</th><th>Ceiling</th><th>ADP</th><th>Edge</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function viewPlan(){
-  const PLAN=[["RB",1],["WR",2],["WR",3],["RB",4],["WR",5],["WR",6],["RB",7],["WR",8],
-              ["QB",9],["WR",10],["RB",11],["TE",12],["QB",13],["WR",14],["TE",15],
-              ["QB",16],["WR",17],["TE",18]];
+  /* The board is generated from the same functions the draft room uses, so the
+     plan and the recommendation can never disagree. */
+  const PLAN=planSeq().map((p,i)=>[p,i+1]);
   const EV=[["Leverage + cover",1989,28.7,0.19,1],["Leverage + 3TE",1982,24.7,0.47,0],
             ["Balanced",1962,18.3,0.15,0],["Leverage, no cover",1903,7.7,1.37,0],
             ["WR-heavy",1899,4.7,1.14,0],["RB-heavy",1887,6.7,1.32,0],
             ["Early QB",1870,5.0,0.57,0],["Elite TE",1869,4.3,0.71,0]];
-  const counts={QB:3,RB:4,WR:8,TE:3};
+  const counts=planCounts();
   const board=PLAN.map(([pos,rd])=>`<div class="pk ${pos}">
       <div class="r">R${rd}</div><div class="p"><span class="pos ${pos}">${pos}</span></div></div>`).join("");
   const ev=EV.map(r=>`<tr class="row">
@@ -2210,15 +2570,21 @@ function viewPlan(){
   <div class="tablewrap" style="margin-bottom:22px"><table><thead><tr><th class="stripe"></th><th class="l">Strategy</th><th>Season pts</th><th>Win rate</th><th>Empty QB/TE weeks</th></tr></thead><tbody>${ev}</tbody></table></div>
 
   <div class="group"><h3>Round-by-round</h3></div>
-  <p class="note" style="margin-bottom:12px">The winning shape: <b>${counts.RB} RB &middot; ${counts.WR} WR &middot; ${counts.QB} QB &middot; ${counts.TE} TE</b>. Backs and receivers only through round 8, first quarterback at 9, first tight end at 12, then fill the one-slot positions out so they are never empty.</p>
+  <p class="note" style="margin-bottom:12px">The winning shape for your ${S.roster}-round draft: <b>${allPos().filter(p=>counts[p]).map(p=>counts[p]+" "+p).join(" &middot; ")}</b>. Backs and receivers only through round 8, first quarterback at 9, first tight end at 12, then fill the one-slot positions out so they are never empty.</p>
   <div class="plangrid" style="margin-bottom:22px">${board}</div>
+
+  ${(S.sK>0||S.sDST>0)?`<div class="group"><h3>Kicker and defense &mdash; last, and here is the number</h3></div>
+  <p class="note" style="margin-bottom:12px">Underdog does not draft these, so there is no simulation behind them and none of the round-by-round evidence above applies. What there is instead is a measurement. Splitting every 2025 season into odd and even weeks and correlating the halves says how much of a position's spread is a real difference between players and how much is variance wearing a jersey. Receiver comes back at <b>0.91</b> and running back at <b>0.90</b> &mdash; almost all of it is real. Kicker is <b>0.37</b>. Team defense is <b>0.17</b>.<br><br>
+  Broken down further, kicker accuracy correlates at <b>&minus;0.26</b> and defensive plus return touchdowns at <b>0.002</b>. Neither is a skill you can draft. What does carry is volume &mdash; field-goal attempts at 0.49 &mdash; and pass rush, where sacks come back at 0.59. So the model projects every kicker at the same accuracy and every defense at the same touchdown rate, and separates them on the two things that survive: how often the offense stalls in field-goal range, and how hard the front rushes.<br><br>
+  Once you strip out what you cannot predict, the gap from the best defense to the one still sitting there in the last round is about <b>a point a game</b>, and at kicker roughly <b>two</b>. That is the entire prize. Take them in the last two rounds${S.roster>=20?"":", and know what the arithmetic below is costing you"}.</p>
+  <p class="note" style="margin-bottom:22px"><b>One caution the coverage grid will show you.</b> These are one-slot positions and best ball never lets you stream, so a single kicker is a guaranteed zero in his bye week &mdash; about eight points &mdash; and a single defense about five. Carrying two of each with different byes fixes it, but on an ${S.roster}-man roster those two spots have to come out of your receivers. The plan above gives up the backup kicker and defense first, because one bye-week zero costs less than three fewer receivers do. At ${S.roster>=22?"this roster size you can afford both":"20 rounds or more you can afford one of each without touching the skill positions"}.</p>`:""}
 
   <div class="group"><h3>How to use it with the board</h3></div>
   <p class="note">This is a shape, not a script. Take the highest-ranked player on the Big Board at the position the round calls for, and let the value column override you when someone falls a long way past their ADP. The plan's job is only to stop two failure modes the rankings cannot see on their own: spending early capital on a flat position, and leaving a starting slot empty in December.</p>`;
 }
 
 function viewCalib(){
-  const posOrder=["WR","RB","TE","QB"];
+  const posOrder=["WR","RB","TE","QB","K","DST"].filter(p=>allPos().indexOf(p)>=0);
   const curve = pos=>{
     const s=ROWS.filter(r=>r.p===pos).sort((a,b)=>b.ppg-a.ppg);
     const cap=histCap(pos), max=cap.p99;
@@ -2259,8 +2625,27 @@ function viewCalib(){
     </div>`;
   }).join("");
 
+  /* Reliability: how much of each position's spread is signal. */
+  const relTable = posOrder.map(pos=>{
+    const st=LEVSTAT[pos]||{}, r=RELY[pos]||1;
+    const verdict = r>=0.85 ? "nearly all of the spread is real"
+                  : r>=0.70 ? "mostly real, some noise"
+                  : r>=0.45 ? "half of what you see is variance"
+                  : r>=0.30 ? "most of the spread is noise"
+                            : "almost none of it carries forward";
+    return `<tr class="row">
+      <td class="stripe" style="background:${r>=0.85?"var(--edge)":r<=0.40?"var(--warn)":"transparent"}"></td>
+      <td class="l"><span class="pos ${pos}">${pos}</span></td>
+      <td class="num" style="color:var(--ink-3)">${RELY_N[pos]||0}</td>
+      <td class="num" style="font-weight:600;color:${r>=0.85?"var(--edge)":r<=0.40?"var(--warn)":"var(--ink)"}">${r.toFixed(2)}</td>
+      <td class="num" style="color:var(--ink-3)">${st.pct}%</td>
+      <td class="num" style="color:var(--accent);font-weight:600">${st.real}%</td>
+      <td class="l" style="font-size:11px;color:var(--ink-3)">${verdict}</td>
+    </tr>`;
+  }).join("");
+
   // realism audit
-  const audit=["QB","RB","WR","TE"].map(pos=>{
+  const audit=allPos().map(pos=>{
     const s=ROWS.filter(r=>r.p===pos).sort((a,b)=>b.ppg-a.ppg);
     const cap=histCap(pos), top=s[0], mc=Math.max(...s.map(r=>r.ceil));
     const ok=top.ppg<=cap.p99 && mc<=cap.p99*1.05;
@@ -2288,6 +2673,11 @@ function viewCalib(){
   <div class="group"><h3>Where each position falls off</h3></div>
   <p class="note" style="margin-bottom:10px">Tight end is the clearest shape on the board: a real gap at the top, then a long flat stretch. That argues for taking one of the top two or waiting a very long time — the middle is the trap.</p>
   <div class="cards" style="margin-bottom:22px">${curves}</div>
+
+  <div class="group"><h3>How much of the spread is real</h3></div>
+  <p class="note" style="margin-bottom:10px">Every 2025 season was split into odd and even weeks, each half averaged, and the halves correlated across the position &mdash; then corrected up to full-season length. It answers the one question a rank curve cannot: how much of the gap between the best and the middle is a difference between players, and how much is the same player having a better September. <b>Predictable gap</b> is the elite-to-replacement edge after removing the part you could not have seen coming, and it is what actually drives the multiplier above.</p>
+  <div class="tablewrap" style="margin-bottom:10px"><table><thead><tr><th class="stripe"></th><th class="l">Pos</th><th>Sample</th><th>Reliability</th><th>Raw gap</th><th>Predictable gap</th><th class="l">Reading</th></tr></thead><tbody>${relTable}</tbody></table></div>
+  <p class="note" style="margin-bottom:22px">This is a <i>within-season</i> measurement, which makes it an upper bound on year-ahead predictability &mdash; the real draft-day edge is smaller than every number in that table. Move <b>Reliability shrink</b> to zero to price last season at face value and watch what it does to the bottom two rows.</p>
 
   <div class="group"><h3>Realism check</h3></div>
   <p class="note" style="margin-bottom:10px">Projections are anchored to the best full-PPR seasons on record, restated in your scoring. A median must not be an all-time record, and a ceiling must approach one without sailing past it.</p>
@@ -2363,8 +2753,8 @@ function bindNum(id,key){
   inp.value=S[key];
 }
 ["ppr","tep"].forEach(k=>bindRange(k,k,v=>v.toFixed(2)));
-["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>bindNum(k,k));
-["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>bindRange(k,k));
+["teams","roster","sQB","sRB","sWR","sTE","sFLEX","sK","sDST"].forEach(k=>bindNum(k,k));
+["wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","wRely","emQB","emRB","emWR","emTE","emK","emDST"].forEach(k=>bindRange(k,k));
 
 document.querySelectorAll("#pwseg button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed","false"));
@@ -2376,10 +2766,10 @@ document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",
 }));
 $("#resetbtn").addEventListener("click",()=>{
   Object.assign(S,DEF_S);
-  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","emQB","emRB","emWR","emTE"].forEach(k=>{
+  ["ppr","tep","wPlayoff","wSpike","wOL","wScheme","wVol","wTD","wPass","wInj","wPrior","priFull","wRange","wBust","wTDreg","wCal","gamma","wRely","emQB","emRB","emWR","emTE","emK","emDST"].forEach(k=>{
     const i=document.getElementById(k); i.value=S[k]; document.getElementById(k+"_v").textContent=S[k].toFixed(2);
   });
-  ["teams","roster","sQB","sRB","sWR","sTE","sFLEX"].forEach(k=>{document.getElementById(k).value=S[k];});
+  ["teams","roster","sQB","sRB","sWR","sTE","sFLEX","sK","sDST"].forEach(k=>{document.getElementById(k).value=S[k];});
   document.querySelectorAll("#pwseg button").forEach(o=>o.setAttribute("aria-pressed",o.dataset.pw==="15"?"true":"false"));
   run(); render();
 });
@@ -2414,7 +2804,9 @@ run(); render();
     "| RB1",by("RB")[0].n,by("RB")[0].ppg.toFixed(1),ok("RB",16,24),
     "| WR1",by("WR")[0].n,by("WR")[0].ppg.toFixed(1),ok("WR",13,20),
     "| QB1",by("QB")[0].n,by("QB")[0].ppg.toFixed(1),ok("QB",19,28),
-    "| TE1",by("TE")[0].n,by("TE")[0].ppg.toFixed(1),ok("TE",9,16));
+    "| TE1",by("TE")[0].n,by("TE")[0].ppg.toFixed(1),ok("TE",9,16),
+    S.sK>0?"| K1 "+by("K")[0].n+" "+by("K")[0].ppg.toFixed(1)+" "+ok("K",8,13):"",
+    S.sDST>0?"| DST1 "+by("DST")[0].n+" "+by("DST")[0].ppg.toFixed(1)+" "+ok("DST",5,11):"");
 })();
 </script>
 </body>

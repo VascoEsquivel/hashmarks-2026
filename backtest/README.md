@@ -26,3 +26,43 @@ rate.
 Separately, rank-for-rank comparison showed the projected curve was too low at
 the top and too high through the middle and tail at every position except QB.
 Fixed with rank calibration; mean absolute error 1.27 -> 0.54 ppg.
+
+## Reliability (added Sep 11, 2026)
+
+`reliability.py` — split-half correlation of 2025 per-game scoring. Each player's odd weeks
+against his even weeks, correlated across the position, Spearman-Brown corrected to full-season
+length. This is what tells the model how much of a position's spread is a real difference between
+players rather than variance.
+
+| Pos | n | r_full | observed sd | true sd |
+| --- | --- | --- | --- | --- |
+| WR | 138 | 0.908 | 4.15 | 3.96 |
+| RB | 88 | 0.904 | 5.27 | 5.01 |
+| TE | 70 | 0.839 | 3.11 | 2.85 |
+| QB | 31 | 0.735 | 3.65 | 3.13 |
+| K | 28 | 0.374 | 1.50 | 0.92 |
+| DST | 32 | 0.170 | 1.71 | 0.71 |
+
+`components.py` — the same test per input rather than per position:
+
+| Input | r_full |
+| --- | --- |
+| DST sacks/gm | 0.589 |
+| DST points allowed/gm | 0.465 |
+| DST takeaways/gm | 0.285 |
+| DST def+ST TD/gm | **0.002** |
+| K FG attempts/gm | 0.494 |
+| K 50+ attempt share | 0.323 |
+| K FG% per game | **−0.258** |
+
+The two bolded rows are why the model projects every defense at the league touchdown rate and
+every kicker at the league accuracy bar. Neither is a skill you can draft.
+
+`build_kdst.py` / `emit_kdst.py` — derive kicker and team-defense production from the same weekly
+CSV and emit the player block. Team defense is aggregated from the defending players' rows; points
+allowed is reconstructed from the opponent's own scoring, which slightly understates it because
+two-point conversions and return scores are not in the reconstruction. `paTier` is fitted to the
+2025 weekly outcomes: `6.125 − 0.2460 × PA`.
+
+**Caveat that belongs on every number above:** these are *within-season* measurements, so they are
+an upper bound on year-ahead predictability. The real draft-day edge is smaller than any of them.
